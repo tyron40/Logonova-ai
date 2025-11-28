@@ -1,7 +1,6 @@
 import React from 'react';
 import { Sparkles, Menu, X, User, LogOut, LogIn, Settings } from 'lucide-react';
 import { CreditDisplay } from './CreditDisplay';
-import { AccountSettings } from './AccountSettings';
 
 interface HeaderProps {
   currentView: 'home' | 'generator' | 'gallery';
@@ -10,6 +9,7 @@ interface HeaderProps {
   onSignOut: () => void;
   onShowAuth: () => void;
   onPurchaseCredits?: () => void;
+  onShowAccountSettings?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -18,11 +18,11 @@ export const Header: React.FC<HeaderProps> = ({
   currentUser, 
   onSignOut, 
   onShowAuth,
-  onPurchaseCredits
+  onPurchaseCredits,
+  onShowAccountSettings
 }) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [showUserMenu, setShowUserMenu] = React.useState(false);
-  const [showAccountSettings, setShowAccountSettings] = React.useState(false);
 
   const navItems = [
     { id: 'home' as const, label: 'Home' },
@@ -93,7 +93,7 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
                     <button
                       onClick={() => {
-                        setShowAccountSettings(true);
+                        onShowAccountSettings?.();
                         setShowUserMenu(false);
                       }}
                       className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-slate-300 hover:bg-slate-600/50 hover:text-white transition-colors mobile-optimized mobile-button"
@@ -173,7 +173,7 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
                     <button
                       onClick={() => {
-                        setShowAccountSettings(true);
+                        onShowAccountSettings?.();
                         setIsMenuOpen(false);
                       }}
                       className="w-full flex items-center space-x-2 px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-700/50 rounded-xl transition-colors mobile-optimized mobile-button"
@@ -217,14 +217,6 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={() => setShowUserMenu(false)}
         />
       )}
-
-      {/* Account Settings Modal */}
-      <AccountSettings
-        isOpen={showAccountSettings}
-        onClose={() => setShowAccountSettings(false)}
-        currentUser={currentUser}
-        onSignOut={onSignOut}
-      />
     </header>
   );
 };

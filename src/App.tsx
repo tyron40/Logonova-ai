@@ -9,6 +9,7 @@ import { AuthModal } from './components/AuthModal';
 import { SubscriptionPlans } from './components/SubscriptionPlans';
 import { SuccessPage } from './components/SuccessPage';
 import { CreditsPurchaseModal } from './components/CreditsPurchaseModal';
+import { AccountSettings } from './components/AccountSettings';
 import { stripeService } from './services/stripeService';
 import { apiKeyManager } from './services/apiKeyManager';
 import { supabaseService, supabase } from './services/supabase';
@@ -20,6 +21,7 @@ function App() {
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCreditModal, setShowCreditModal] = useState(false);
+  const [showAccountSettings, setShowAccountSettings] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -331,6 +333,7 @@ function App() {
         onSignOut={handleSignOut}
         onShowAuth={() => setShowAuthModal(true)}
         onPurchaseCredits={handlePurchaseCredits}
+        onShowAccountSettings={() => setShowAccountSettings(true)}
       />
       {renderCurrentView()}
       
@@ -358,6 +361,16 @@ function App() {
           isOpen={showCreditModal}
           onClose={() => setShowCreditModal(false)}
           userEmail={currentUser?.email}
+        />
+      )}
+
+      {/* Account Settings Modal */}
+      {showAccountSettings && (
+        <AccountSettings
+          isOpen={showAccountSettings}
+          onClose={() => setShowAccountSettings(false)}
+          currentUser={currentUser}
+          onSignOut={handleSignOut}
         />
       )}
     </div>
