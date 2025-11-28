@@ -117,9 +117,21 @@ export default function LogoGenerator({
 
       const logoUrl = await trpcLogoService.generateLogo(logoRequest);
       setLogoUrl(logoUrl);
+      setError(''); // Clear any previous errors
     } catch (error) {
       console.error('Error generating logo:', error);
-      setError(error instanceof Error ? error.message : 'Failed to generate logo. Please try again.');
+      // Provide more specific error handling
+      let errorMessage = 'Failed to generate logo. Please try again.';
+      if (error instanceof Error) {
+        if (error.message.includes('fetch')) {
+          errorMessage = 'Unable to connect to AI service. Please check your internet connection.';
+        } else if (error.message.includes('rate limit')) {
+          errorMessage = 'AI service is busy. Please wait a moment and try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      setError(errorMessage);
       
       // Refund credits if logo generation failed after deduction
       creditService.addCredits(

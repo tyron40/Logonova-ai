@@ -13,7 +13,13 @@ export interface LogoGenerationRequest {
 export const trpc = createTRPCProxyClient<any>({
   links: [
     httpBatchLink({
-      url: '/api/trpc',
+      url: 'https://logonova-ai.netlify.app/api/trpc',
+      // Add headers for cross-origin requests
+      headers() {
+        return {
+          'Content-Type': 'application/json',
+        };
+      },
     }),
   ],
 });
@@ -22,7 +28,7 @@ export const trpcLogoService = {
   async generateLogo(request: LogoGenerationRequest): Promise<string> {
     try {
       const result = await trpc.logo.generate.mutate(request);
-      return result.logoUrl;
+      return result.logoUrl || result.imageUrl;
     } catch (error) {
       console.error('tRPC logo generation failed:', error);
       throw new Error(error instanceof Error ? error.message : 'Logo generation failed');
@@ -35,7 +41,7 @@ export const trpcLogoService = {
         companyName,
         description
       });
-      return result.keywords;
+      return result.keywords || result.enhancedDescription;
     } catch (error) {
       console.error('tRPC keyword generation failed:', error);
       throw new Error(error instanceof Error ? error.message : 'Keyword generation failed');
