@@ -67,7 +67,7 @@ export class SupabaseService {
     return SupabaseService.instance;
   }
 
-  private isAvailable(): boolean {
+  isAvailable(): boolean {
     return supabase !== null;
   }
 
