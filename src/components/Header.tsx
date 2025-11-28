@@ -1,6 +1,7 @@
 import React from 'react';
-import { Sparkles, Menu, X, User, LogOut, LogIn } from 'lucide-react';
+import { Sparkles, Menu, X, User, LogOut, LogIn, Settings } from 'lucide-react';
 import { CreditDisplay } from './CreditDisplay';
+import { AccountSettings } from './AccountSettings';
 
 interface HeaderProps {
   currentView: 'home' | 'generator' | 'gallery';
@@ -21,6 +22,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [showUserMenu, setShowUserMenu] = React.useState(false);
+  const [showAccountSettings, setShowAccountSettings] = React.useState(false);
 
   const navItems = [
     { id: 'home' as const, label: 'Home' },
@@ -89,6 +91,16 @@ export const Header: React.FC<HeaderProps> = ({
                       <p className="text-sm font-medium text-white">Signed in as</p>
                       <p className="text-xs text-slate-400 truncate">{currentUser.user_metadata?.username || currentUser.email}</p>
                     </div>
+                    <button
+                      onClick={() => {
+                        setShowAccountSettings(true);
+                        setShowUserMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-slate-300 hover:bg-slate-600/50 hover:text-white transition-colors mobile-optimized mobile-button"
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span>Account Settings</span>
+                    </button>
                     <button
                       onClick={() => {
                         onSignOut();
@@ -161,6 +173,16 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
                     <button
                       onClick={() => {
+                        setShowAccountSettings(true);
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full flex items-center space-x-2 px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-700/50 rounded-xl transition-colors mobile-optimized mobile-button"
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span>Account Settings</span>
+                    </button>
+                    <button
+                      onClick={() => {
                         onSignOut();
                         setIsMenuOpen(false);
                       }}
@@ -195,6 +217,14 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={() => setShowUserMenu(false)}
         />
       )}
+
+      {/* Account Settings Modal */}
+      <AccountSettings
+        isOpen={showAccountSettings}
+        onClose={() => setShowAccountSettings(false)}
+        currentUser={currentUser}
+        onSignOut={onSignOut}
+      />
     </header>
   );
 };
