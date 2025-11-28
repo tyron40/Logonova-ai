@@ -60,7 +60,8 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onApi
             </ul>
             <p className="text-xs text-blue-400 font-medium">Pricing: {serviceInfo.pricing}</p>
 
-          {/* Form */}
+          </div>
+
           {/* Close Button */}
           <div className="flex justify-center">
             <button
@@ -75,5 +76,3 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onApi
     </div>
   );
 };
-  )
-}
