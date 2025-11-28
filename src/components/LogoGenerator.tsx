@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Wand2, Download, Loader2, Sparkles, Save, RefreshCw, Lightbulb } from 'lucide-react';
-import { openaiLogoService } from '../services/openaiApi';
-import { apiKeyManager } from '../services/apiKeyManager';
+import { trpcLogoService } from '../services/trpc';
 import { SubscriptionPlans } from './SubscriptionPlans';
 import { CreditDisplay } from './CreditDisplay';
 import { creditService } from '../services/creditService';
@@ -90,11 +89,6 @@ export default function LogoGenerator({
       setError(`Insufficient credits. You need ${requiredCredits} credit${requiredCredits > 1 ? 's' : ''} to generate a logo.`);
       return;
     }
-    if (!apiKeyManager.hasApiKey('openai')) {
-      setError('OpenAI API key is required. Check your .env file.');
-      return;
-    }
-
     setError('');
     setIsGenerating(true);
 
@@ -121,7 +115,7 @@ export default function LogoGenerator({
         industry: 'Professional Services'
       };
 
-      const logoUrl = await openaiLogoService.generateLogo(logoRequest);
+      const logoUrl = await trpcLogoService.generateLogo(logoRequest);
       setLogoUrl(logoUrl);
     } catch (error) {
       console.error('Error generating logo:', error);
@@ -145,16 +139,11 @@ export default function LogoGenerator({
       return;
     }
 
-    if (!apiKeyManager.hasApiKey('openai')) {
-      setError('OpenAI API key is required for AI enhancement');
-      return;
-    }
-
     setIsEnhancing(true);
     setError('');
 
     try {
-      const enhanced = await openaiLogoService.generateBusinessKeywordsAndElements(
+      const enhanced = await trpcLogoService.generateBusinessKeywords(
         companyName.trim(),
         description.trim() || 'Professional business'
       );
@@ -357,25 +346,23 @@ export default function LogoGenerator({
                   <label className="block text-white font-medium">
                   Describe your business
                   </label>
-                  {apiKeyManager.hasApiKey('openai') && (
-                    <button
-                      onClick={enhanceDescription}
-                      disabled={isEnhancing || !companyName.trim()}
-                      className="flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isEnhancing ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Enhancing...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Lightbulb className="w-4 h-4" />
-                          <span>✨ AI Enhance</span>
-                        </>
-                      )}
-                    </button>
-                  )}
+                  <button
+                    onClick={enhanceDescription}
+                    disabled={isEnhancing || !companyName.trim()}
+                    className="flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isEnhancing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Enhancing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lightbulb className="w-4 h-4" />
+                        <span>✨ AI Enhance</span>
+                      </>
+                    )}
+                  </button>
                 </div>
                 <textarea
                   value={description}
