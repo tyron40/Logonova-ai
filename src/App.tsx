@@ -105,6 +105,12 @@ function App() {
       const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id);
         const user = session?.user || null;
+        
+        // Clear stale session if no user found to prevent refresh token errors
+        if (!user) {
+          await supabaseService.signOut();
+        }
+        
         setCurrentUser(user);
         
         // Reinitialize API key manager
