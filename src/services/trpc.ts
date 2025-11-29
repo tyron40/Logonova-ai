@@ -13,7 +13,7 @@ export interface LogoGenerationRequest {
 export const trpc = createTRPCProxyClient<any>({
   links: [
     httpBatchLink({
-      url: import.meta.env.VITE_TRPC_API_URL || 'https://logonova-ai.netlify.app/api/trpc',
+      url: import.meta.env.VITE_TRPC_API_URL || 'http://localhost:8888/api/trpc',
       // Add headers for cross-origin requests
       headers() {
         return {
@@ -31,7 +31,17 @@ export const trpcLogoService = {
       return result.logoUrl || result.imageUrl;
     } catch (error) {
       console.error('tRPC logo generation failed:', error);
-      throw new Error(error instanceof Error ? error.message : 'Logo generation failed');
+      
+      // Provide more specific error handling for connection issues
+      if (error instanceof Error) {
+        if (error.message.includes('fetch')) {
+          throw new Error('Unable to connect to logo generation service. Please ensure the backend server is running with "netlify dev"');
+        } else if (error.message.includes('ECONNREFUSED') || error.message.includes('ERR_NETWORK')) {
+          throw new Error('Backend service not available. Run "netlify dev" to start the local server.');
+        }
+        throw new Error(error.message);
+      }
+      throw new Error('Logo generation service unavailable');
     }
   },
 
@@ -44,7 +54,17 @@ export const trpcLogoService = {
       return result.keywords || result.enhancedDescription;
     } catch (error) {
       console.error('tRPC keyword generation failed:', error);
-      throw new Error(error instanceof Error ? error.message : 'Keyword generation failed');
+      
+      // Provide more specific error handling for connection issues
+      if (error instanceof Error) {
+        if (error.message.includes('fetch')) {
+          throw new Error('Unable to connect to keyword enhancement service. Please ensure the backend server is running with "netlify dev"');
+        } else if (error.message.includes('ECONNREFUSED') || error.message.includes('ERR_NETWORK')) {
+          throw new Error('Backend service not available. Run "netlify dev" to start the local server.');
+        }
+        throw new Error(error.message);
+      }
+      throw new Error('Keyword generation service unavailable');
     }
   }
 };
