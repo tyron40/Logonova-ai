@@ -13,7 +13,7 @@ export interface LogoGenerationRequest {
 export const trpc = createTRPCProxyClient<any>({
   links: [
     httpBatchLink({
-      url: import.meta.env.VITE_NEXT_PUBLIC_TRPC_API_URL || 'https://logonova-ai.netlify.app/.netlify/functions/trpc',
+      url: '/api/trpc',
       // Add headers for cross-origin requests
       headers() {
         return {
@@ -25,7 +25,7 @@ export const trpc = createTRPCProxyClient<any>({
 });
 
 // Debug log the URL being used
-console.log('🔗 tRPC URL:', import.meta.env.VITE_NEXT_PUBLIC_TRPC_API_URL || 'https://logonova-ai.netlify.app/.netlify/functions/trpc');
+console.log('🔗 tRPC URL: /api/trpc (Bolt Backend)');
 
 export const trpcLogoService = {
   async generateLogo(request: LogoGenerationRequest): Promise<string> {
@@ -38,9 +38,9 @@ export const trpcLogoService = {
       // Provide more specific error handling for connection issues
       if (error instanceof Error) {
         if (error.message.includes('fetch')) {
-          throw new Error('Unable to connect to logo generation service. Please ensure the backend server is running with "netlify dev"');
+          throw new Error('Unable to connect to Bolt backend logo generation service');
         } else if (error.message.includes('ECONNREFUSED') || error.message.includes('ERR_NETWORK')) {
-          throw new Error('Backend service not available. Run "netlify dev" to start the local server.');
+          throw new Error('Bolt backend service not available');
         }
         throw new Error(error.message);
       }
@@ -61,9 +61,9 @@ export const trpcLogoService = {
       // Provide more specific error handling for connection issues
       if (error instanceof Error) {
         if (error.message.includes('fetch')) {
-          throw new Error('Unable to connect to keyword enhancement service. Please ensure the backend server is running with "netlify dev"');
+          throw new Error('Unable to connect to Bolt backend keyword enhancement service');
         } else if (error.message.includes('ECONNREFUSED') || error.message.includes('ERR_NETWORK')) {
-          throw new Error('Backend service not available. Run "netlify dev" to start the local server.');
+          throw new Error('Bolt backend service not available');
         }
         throw new Error(error.message);
       }
