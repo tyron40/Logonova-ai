@@ -38,28 +38,32 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onApi
           </div>
 
           {/* Security Notice */}
-          <div className="mb-6 p-4 bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/30 rounded-lg">
-            <h4 className="font-semibold text-green-300 mb-2">🔐 Enhanced Security</h4>
-            <p className="text-sm text-green-300/80 mb-3">API keys are now handled securely by the tRPC backend.</p>
-            <ul className="space-y-1 text-sm text-green-300/70 mt-3">
-              <li>• No API keys exposed in frontend</li>
-              <li>• Secure server-side API handling</li>
-              <li>• Enhanced data protection</li>
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg">
+            <h4 className="font-semibold text-blue-300 mb-2">🔑 API Configuration</h4>
+            <p className="text-sm text-blue-300/80 mb-3">Add your OpenAI API key to your .env file to enable logo generation.</p>
+            <ul className="space-y-1 text-sm text-blue-300/70 mt-3">
+              <li>• Add VITE_OPENAI_API_KEY=your_key_here to .env</li>
+              <li>• Get API key from OpenAI platform</li>
+              <li>• Restart development server after adding</li>
             </ul>
           </div>
 
           {/* Features */}
-          <div className="mb-6 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg">
-            <h4 className="font-semibold text-blue-300 mb-2">AI Logo Generation</h4>
-            <p className="text-sm text-blue-300/80 mb-3">Secure AI-powered logo generation and enhancement</p>
+          <div className="mb-6 p-4 bg-gradient-to-r from-green-500/10 to-green-600/10 border border-green-500/30 rounded-lg">
+            <h4 className="font-semibold text-green-300 mb-2">✨ OpenAI Integration</h4>
+            <p className="text-sm text-green-300/80 mb-3">Direct integration with OpenAI's DALL-E 3 and GPT models</p>
             <ul className="space-y-1 text-sm text-blue-300/70 mb-3">
               <li>• DALL-E 3 image generation</li>
               <li>• GPT-powered prompt enhancement</li>
               <li>• Contextual business analysis</li>
               <li>• Professional vector output</li>
             </ul>
-            <p className="text-xs text-blue-400 font-medium">Pricing: {serviceInfo.pricing}</p>
 
+            <div className="mt-3 p-2 bg-yellow-500/10 border border-yellow-400/30 rounded">
+              <p className="text-xs text-yellow-400">
+                💡 Need an OpenAI API key? Visit <a href="https://platform.openai.com/api-keys" target="_blank" className="underline">platform.openai.com</a>
+              </p>
+            </div>
           </div>
 
           {/* Close Button */}
