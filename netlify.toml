@@ -7,12 +7,6 @@
   # These are designed to be public and exposed in frontend applications
   SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY"
 
-# Redirect API requests to tRPC Netlify Function
-[[redirects]]
-  from = "/api/trpc/*"
-  to = "/.netlify/functions/trpc/:splat"
-  status = 200
-
 # Redirect all routes to index.html for single-page application
 [[redirects]]
   from = "/*"

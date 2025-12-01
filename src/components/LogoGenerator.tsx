@@ -123,10 +123,8 @@ export default function LogoGenerator({
       // Provide more specific error handling
       let errorMessage = 'Failed to generate logo. Please try again.';
       if (error instanceof Error) {
-        if (error.message.includes('netlify dev')) {
-          errorMessage = error.message + '\n\nTo start the backend:\n1. Install Netlify CLI: npm install -g netlify-cli\n2. Run: netlify dev\n3. Restart this app';
-        } else if (error.message.includes('fetch')) {
-          errorMessage = 'Unable to connect to AI service. Ensure backend is running with "netlify dev".';
+        if (error.message.includes('fetch')) {
+          errorMessage = 'Unable to connect to AI service. Please check your internet connection.';
         } else if (error.message.includes('rate limit')) {
           errorMessage = 'AI service is busy. Please wait a moment and try again.';
         } else {
@@ -166,15 +164,7 @@ export default function LogoGenerator({
       setDescription(enhanced);
     } catch (error) {
       console.error('Error enhancing description:', error);
-      let errorMessage = 'Failed to enhance description';
-      if (error instanceof Error) {
-        if (error.message.includes('netlify dev')) {
-          errorMessage = error.message;
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      setError(errorMessage);
+      setError(error instanceof Error ? error.message : 'Failed to enhance description');
     } finally {
       setIsEnhancing(false);
     }
