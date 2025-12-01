@@ -37,14 +37,17 @@ export const trpcLogoService = {
       
       // Provide more specific error handling for connection issues
       if (error instanceof Error) {
+        if (error.message.includes('Unexpected end of JSON input') || error.message.includes('JSON')) {
+          throw new Error('Backend service is not responding properly. The tRPC backend may not be running or configured correctly.');
+        }
         if (error.message.includes('fetch')) {
-          throw new Error('Unable to connect to Bolt backend logo generation service');
+          throw new Error('Unable to connect to backend service. Make sure the tRPC backend is running.');
         } else if (error.message.includes('ECONNREFUSED') || error.message.includes('ERR_NETWORK')) {
-          throw new Error('Bolt backend service not available');
+          throw new Error('Backend service not available. Please check if the tRPC server is running.');
         }
         throw new Error(error.message);
       }
-      throw new Error('Logo generation service unavailable');
+      throw new Error('Backend service unavailable. The tRPC server may not be running.');
     }
   },
 
@@ -60,14 +63,17 @@ export const trpcLogoService = {
       
       // Provide more specific error handling for connection issues
       if (error instanceof Error) {
+        if (error.message.includes('Unexpected end of JSON input') || error.message.includes('JSON')) {
+          throw new Error('Backend service is not responding properly. The tRPC backend may not be running or configured correctly.');
+        }
         if (error.message.includes('fetch')) {
-          throw new Error('Unable to connect to Bolt backend keyword enhancement service');
+          throw new Error('Unable to connect to backend service. Make sure the tRPC backend is running.');
         } else if (error.message.includes('ECONNREFUSED') || error.message.includes('ERR_NETWORK')) {
-          throw new Error('Bolt backend service not available');
+          throw new Error('Backend service not available. Please check if the tRPC server is running.');
         }
         throw new Error(error.message);
       }
-      throw new Error('Keyword generation service unavailable');
+      throw new Error('Backend service unavailable. The tRPC server may not be running.');
     }
   }
 };
