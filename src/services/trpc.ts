@@ -10,8 +10,32 @@ export interface LogoGenerationRequest {
 }
 
 // Create tRPC client
-const apiUrl = import.meta.env.VITE_TRPC_API_URL || '/api/trpc';
+const apiUrl = import.meta.env.VITE_TRPC_API_URL || 'http://localhost:3001/api/trpc';
 console.log('🔗 tRPC URL:', apiUrl);
+
+// Test if tRPC backend is available
+let backendAvailable = false;
+let backendTested = false;
+
+async function testBackendAvailability(): Promise<boolean> {
+  if (backendTested) {
+    return backendAvailable;
+  }
+  
+  try {
+    const response = await fetch(apiUrl.replace('/api/trpc', '/health'), {
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'omit',
+    });
+    backendAvailable = response.ok;
+  } catch (error) {
+    backendAvailable = false;
+  }
+  
+  backendTested = true;
+  return backendAvailable;
+}
 
 export const trpc = createTRPCProxyClient<any>({
   links: [
@@ -38,6 +62,12 @@ export const trpc = createTRPCProxyClient<any>({
 export const trpcLogoService = {
   async generateLogo(request: LogoGenerationRequest): Promise<string> {
     try {
+      // Check if backend is available first
+      const isAvailable = await testBackendAvailability();
+      if (!isAvailable) {
+        throw new Error('BACKEND_UNAVAILABLE');
+      }
+      
       console.log('🚀 Generating logo with request:', request);
       const result = await trpc.logo.generate.mutate(request);
       console.log('✅ Logo generated successfully:', result);
@@ -45,9 +75,14 @@ export const trpcLogoService = {
     } catch (error) {
       console.error('❌ tRPC logo generation failed:', error);
       
+      // Handle backend unavailable
+      if (error instanceof Error && error.message === 'BACKEND_UNAVAILABLE') {
+        throw new Error('The tRPC backend service is not running. Please ensure the backend is started and accessible at: ' + apiUrl);
+      }
+      
       // Handle JSON parsing errors specifically
       if (error instanceof SyntaxError || (error instanceof Error && error.message.includes('Unexpected end of JSON input'))) {
-        throw new Error('The tRPC backend is not responding correctly. Please check if the backend service is running and properly configured.');
+        throw new Error('The tRPC backend returned an invalid response. This usually means the backend is not properly configured or is returning HTML instead of JSON. Check that the backend is running at: ' + apiUrl);
       }
       
       // Handle specific network errors
@@ -76,6 +111,12 @@ export const trpcLogoService = {
 
   async generateBusinessKeywords(companyName: string, description: string): Promise<string> {
     try {
+      // Check if backend is available first
+      const isAvailable = await testBackendAvailability();
+      if (!isAvailable) {
+        throw new Error('BACKEND_UNAVAILABLE');
+      }
+      
       console.log('🔍 Generating keywords for:', { companyName, description });
       const result = await trpc.logo.generateKeywords.mutate({
         companyName,
@@ -86,9 +127,14 @@ export const trpcLogoService = {
     } catch (error) {
       console.error('❌ tRPC keyword generation failed:', error);
       
+      // Handle backend unavailable
+      if (error instanceof Error && error.message === 'BACKEND_UNAVAILABLE') {
+        throw new Error('The tRPC backend service is not running. Please ensure the backend is started and accessible at: ' + apiUrl);
+      }
+      
       // Handle JSON parsing errors specifically
       if (error instanceof SyntaxError || (error instanceof Error && error.message.includes('Unexpected end of JSON input'))) {
-        throw new Error('The tRPC backend is not responding correctly. Please check if the backend service is running.');
+        throw new Error('The tRPC backend returned an invalid response. This usually means the backend is not properly configured. Check that the backend is running at: ' + apiUrl);
       }
       
       // Handle specific network errors
