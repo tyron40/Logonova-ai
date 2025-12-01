@@ -45,6 +45,11 @@ export const trpcLogoService = {
     } catch (error) {
       console.error('❌ tRPC logo generation failed:', error);
       
+      // Handle JSON parsing errors specifically
+      if (error instanceof SyntaxError && error.message.includes('JSON')) {
+        throw new Error('Server returned invalid response. The tRPC backend may be misconfigured or experiencing issues.');
+      }
+      
       // Handle specific network errors
       if (error instanceof Error) {
         if (error.message.includes('fetch')) {
