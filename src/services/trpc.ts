@@ -10,7 +10,7 @@ export interface LogoGenerationRequest {
 }
 
 // Create tRPC client
-const apiUrl = import.meta.env.VITE_TRPC_API_URL || 'https://logonova-ai.netlify.app/api/trpc';
+const apiUrl = import.meta.env.VITE_TRPC_API_URL || '/api/trpc';
 console.log('🔗 tRPC URL:', apiUrl);
 
 export const trpc = createTRPCProxyClient<any>({
