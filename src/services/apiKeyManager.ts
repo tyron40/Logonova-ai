@@ -21,49 +21,129 @@ export class ApiKeyManager {
   }
 
   async initializeForUser(userId: string | null) {
-    console.log('API key manager deprecated - using tRPC backend for API calls');
+    console.log('Initializing API key manager for user:', userId);
     this.currentUserId = userId;
     this.cachedKeys = {};
+    
+    // Load environment keys first (highest priority)
+    this.loadEnvironmentKeysAsFallback();
+    
+    // Load user-specific keys from localStorage
+    this.loadLocalApiKeys();
+    
+    // Load from Supabase if available and user is logged in
+    if (userId && supabaseService.isAvailable()) {
+      try {
+        await this.loadSupabaseApiKeys(userId);
+      } catch (error) {
+        console.warn('Failed to load Supabase API keys:', error);
+      }
+    }
+    
     this.initialized = true;
+    console.log('API key manager initialized. Available keys:', Object.keys(this.cachedKeys));
   }
 
   private loadEnvironmentKeysAsFallback() {
-    // API keys now handled securely by tRPC backend
-    console.log('Environment keys deprecated - using tRPC backend');
+    // Load API keys from environment variables
+    const envKeys = {
+      openai: import.meta.env.VITE_OPENAI_API_KEY,
+      replicate: import.meta.env.VITE_REPLICATE_API_TOKEN,
+      gemini: import.meta.env.VITE_GEMINI_API_KEY,
+      huggingFace: import.meta.env.VITE_HUGGING_FACE_API_KEY
+    };
+
+    // Only store non-empty keys
+    Object.entries(envKeys).forEach(([key, value]) => {
+      if (value && value.trim()) {
+        this.cachedKeys[key as keyof ApiKeys] = value.trim();
+        console.log(`Loaded ${key} API key from environment`);
+      }
+    });
   }
 
   private loadLocalApiKeys() {
-    // Local storage API keys deprecated - using tRPC backend
-    console.log('Local API keys deprecated - using tRPC backend');
+    try {
+      const storageKey = this.currentUserId ? `api-keys-${this.currentUserId}` : 'api-keys-guest';
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const localKeys = JSON.parse(stored);
+        // Merge with existing keys (environment keys take precedence)
+        Object.entries(localKeys).forEach(([key, value]) => {
+          if (value && !this.cachedKeys[key as keyof ApiKeys]) {
+            this.cachedKeys[key as keyof ApiKeys] = value as string;
+            console.log(`Loaded ${key} API key from localStorage`);
+          }
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to load local API keys:', error);
+    }
   }
 
-  async setApiKey(keyType: 'replicate' | 'gemini' | 'huggingFace', apiKey: string) {
+  private async loadSupabaseApiKeys(userId: string) {
+    // This would load from Supabase if implemented
+    console.log('Supabase API key loading not implemented yet');
   }
+
   async setApiKey(keyType: 'replicate' | 'openai' | 'gemini' | 'huggingFace', apiKey: string) {
-    console.log(`API keys now managed securely by tRPC backend`);
+    if (!apiKey || !apiKey.trim()) {
+      throw new Error('API key cannot be empty');
+    }
+
+    // Validate API key format
+    const validationRules = {
+      openai: (key: string) => key.startsWith('sk-'),
+      replicate: (key: string) => key.includes('-') && key.length > 20,
+      gemini: (key: string) => key.startsWith('AIza') || key.length > 30,
+      huggingFace: (key: string) => key.startsWith('hf_') || key.length > 20
+    };
+
+    const validator = validationRules[keyType];
+    if (validator && !validator(apiKey.trim())) {
+      throw new Error(`Invalid ${keyType} API key format`);
+    }
+
+    this.cachedKeys[keyType] = apiKey.trim();
+
+    // Save to localStorage
+    try {
+      const storageKey = this.currentUserId ? `api-keys-${this.currentUserId}` : 'api-keys-guest';
+      const currentStored = localStorage.getItem(storageKey);
+      const storedKeys = currentStored ? JSON.parse(currentStored) : {};
+      storedKeys[keyType] = apiKey.trim();
+      localStorage.setItem(storageKey, JSON.stringify(storedKeys));
+      console.log(`Saved ${keyType} API key to localStorage`);
+    } catch (error) {
+      console.warn(`Failed to save ${keyType} API key to localStorage:`, error);
+    }
+
+    // Save to Supabase if available and user is logged in
+    if (this.currentUserId && supabaseService.isAvailable()) {
+      try {
+        await this.storeApiKeyToSupabase(keyType, apiKey.trim());
+      } catch (error) {
+        console.warn(`Failed to save ${keyType} API key to Supabase:`, error);
+      }
+    }
   }
 
-  // Remove Supabase storage methods
-  async storeEnvironmentKeysToSupabase() {
-    console.log('API keys managed by tRPC backend');
+  private async storeApiKeyToSupabase(keyType: string, apiKey: string) {
+    // This would save to Supabase if implemented
+    console.log(`Supabase API key storage not implemented for ${keyType}`);
   }
 
-  getApiKey(keyType: 'replicate' | 'gemini' | 'huggingFace'): string | null {
-  }
   getApiKey(keyType: 'replicate' | 'openai' | 'gemini' | 'huggingFace'): string | null {
-    // API keys now handled by tRPC backend
-    return null;
+    return this.cachedKeys[keyType] || null;
   }
 
-  hasApiKey(keyType: 'replicate' | 'gemini' | 'huggingFace'): boolean {
-  }
   hasApiKey(keyType: 'replicate' | 'openai' | 'gemini' | 'huggingFace'): boolean {
-    // Always return true since tRPC backend handles API keys
-    return true;
+    const key = this.getApiKey(keyType);
+    return !!(key && key.trim());
   }
 
   getAllApiKeys(): ApiKeys {
-    return {}; // API keys managed by tRPC backend
+    return { ...this.cachedKeys };
   }
 
   isInitialized(): boolean {
@@ -71,7 +151,24 @@ export class ApiKeyManager {
   }
 
   async clearApiKeys() {
-    console.log('API keys managed by tRPC backend - no local clearing needed');
+    this.cachedKeys = {};
+    
+    // Clear from localStorage
+    try {
+      const storageKey = this.currentUserId ? `api-keys-${this.currentUserId}` : 'api-keys-guest';
+      localStorage.removeItem(storageKey);
+    } catch (error) {
+      console.warn('Failed to clear localStorage API keys:', error);
+    }
+
+    // Clear from Supabase if available and user is logged in
+    if (this.currentUserId && supabaseService.isAvailable()) {
+      try {
+        console.log('Supabase API key clearing not implemented yet');
+      } catch (error) {
+        console.warn('Failed to clear Supabase API keys:', error);
+      }
+    }
   }
 }
 

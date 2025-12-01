@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Wand2, Download, Loader2, Sparkles, Save, RefreshCw, Lightbulb } from 'lucide-react';
-import { trpcLogoService } from '../services/trpc';
+import { openaiLogoService } from '../services/openaiApi';
 import { SubscriptionPlans } from './SubscriptionPlans';
 import { CreditDisplay } from './CreditDisplay';
 import { creditService } from '../services/creditService';
 import { LogoConfig, GeneratedLogo } from '../types';
+import { apiKeyManager } from '../services/apiKeyManager';
 
 interface LogoGeneratorProps {
   onSaveLogo: (logo: LogoConfig) => void;
@@ -115,7 +116,7 @@ export default function LogoGenerator({
         industry: 'Professional Services'
       };
 
-      const logoUrl = await trpcLogoService.generateLogo(logoRequest);
+      const logoUrl = await openaiLogoService.generateLogo(logoRequest);
       setLogoUrl(logoUrl);
       setError(''); // Clear any previous errors
     } catch (error) {
@@ -155,7 +156,7 @@ export default function LogoGenerator({
     setError('');
 
     try {
-      const enhanced = await trpcLogoService.generateBusinessKeywords(
+      const enhanced = await openaiLogoService.generateBusinessKeywords(
         companyName.trim(),
         description.trim() || 'Professional business'
       );
