@@ -46,8 +46,8 @@ export const trpcLogoService = {
       console.error('❌ tRPC logo generation failed:', error);
       
       // Handle JSON parsing errors specifically
-      if (error instanceof SyntaxError && error.message.includes('JSON')) {
-        throw new Error('Server returned invalid response. The tRPC backend may be misconfigured or experiencing issues.');
+      if (error instanceof SyntaxError || (error instanceof Error && error.message.includes('Unexpected end of JSON input'))) {
+        throw new Error('The tRPC backend is not responding correctly. Please check if the backend service is running and properly configured.');
       }
       
       // Handle specific network errors
@@ -60,6 +60,12 @@ export const trpcLogoService = {
         }
         if (error.message.includes('NetworkError')) {
           throw new Error('Network error occurred. Please check your connection and try again.');
+        }
+        if (error.message.includes('404') || error.message.includes('Not Found')) {
+          throw new Error('tRPC backend endpoint not found. The backend may not be properly deployed.');
+        }
+        if (error.message.includes('500') || error.message.includes('Internal Server Error')) {
+          throw new Error('Backend server error. Please try again later or contact support.');
         }
         throw new Error(error.message);
       }
@@ -80,10 +86,18 @@ export const trpcLogoService = {
     } catch (error) {
       console.error('❌ tRPC keyword generation failed:', error);
       
+      // Handle JSON parsing errors specifically
+      if (error instanceof SyntaxError || (error instanceof Error && error.message.includes('Unexpected end of JSON input'))) {
+        throw new Error('The tRPC backend is not responding correctly. Please check if the backend service is running.');
+      }
+      
       // Handle specific network errors
       if (error instanceof Error) {
         if (error.message.includes('fetch')) {
           throw new Error('Unable to connect to AI service. Please check your internet connection.');
+        }
+        if (error.message.includes('404') || error.message.includes('Not Found')) {
+          throw new Error('tRPC backend endpoint not found. The backend may not be properly deployed.');
         }
         throw new Error(error.message);
       }
