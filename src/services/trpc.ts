@@ -13,7 +13,7 @@ export interface LogoGenerationRequest {
 export const trpc = createTRPCProxyClient<any>({
   links: [
     httpBatchLink({
-      url: `${import.meta.env.VITE_TRPC_API_URL || 'https://logonova-ai.netlify.app/api/trpc'}`,
+      url: import.meta.env.VITE_TRPC_API_URL || 'https://logonova-ai.netlify.app/api/trpc',
       // Add headers for cross-origin requests
       headers() {
         return {
@@ -23,6 +23,9 @@ export const trpc = createTRPCProxyClient<any>({
     }),
   ],
 });
+
+// Debug log the URL being used
+console.log('🔗 tRPC URL:', import.meta.env.VITE_TRPC_API_URL || 'https://logonova-ai.netlify.app/api/trpc');
 
 export const trpcLogoService = {
   async generateLogo(request: LogoGenerationRequest): Promise<string> {
