@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Key, ExternalLink, AlertCircle, Zap, CheckCircle, Settings, Upload } from 'lucide-react';
+import { X, Key, ExternalLink, AlertCircle, Zap, CheckCircle, Settings, Upload, Loader2 } from 'lucide-react';
 import { apiKeyManager } from '../services/apiKeyManager';
 
 interface ApiKeyModalProps {
@@ -13,6 +13,10 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onApi
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const serviceInfo = {
+    pricing: 'Pay-per-use with OpenAI API'
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,7 +135,6 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onApi
               )}
             </button>
           </form>
-          </div>
 
           {/* Features */}
           <div className="mb-6 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg">
@@ -144,6 +147,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onApi
               <li>• Professional vector output</li>
             </ul>
             <p className="text-xs text-blue-400 font-medium">Pricing: {serviceInfo.pricing}</p>
+          </div>
 
           {/* Information */}
           <div className="mb-6 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg">
@@ -153,15 +157,25 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onApi
               <li>• Get your key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">OpenAI Platform</a></li>
               <li>• Keys are stored locally in your browser</li>
               <li>• Used for direct API calls to OpenAI</li>
-          {/* Close Button */} 
-          {!isSubmitting && (
-            <p className="text-sm text-green-300/80 mb-3">You can also add API keys to your .env file:</p>
-          {/* Environment Variable Option */}
-              <li>• Add <code className="bg-gray-700 px-1 rounded">VITE_OPENAI_API_KEY=your_key_here</code></li>
-              <li>• Restart the development server</li>
-              {success ? 'Done' : 'Close'}
-            >
-          )}
+            </ul>
+            {!isSubmitting && (
+              <div>
+                <p className="text-sm text-green-300/80 mb-3">You can also add API keys to your .env file:</p>
+                <ul className="space-y-1 text-sm text-blue-300/70">
+                  <li>• Add <code className="bg-gray-700 px-1 rounded">VITE_OPENAI_API_KEY=your_key_here</code></li>
+                  <li>• Restart the development server</li>
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            className="w-full bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-all"
+          >
+            {success ? 'Done' : 'Close'}
+          </button>
         </div>
       </div>
     </div>
