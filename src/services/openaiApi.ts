@@ -167,55 +167,159 @@ export class OpenAILogoService {
       keywords
     } = request;
 
-    // Build a comprehensive prompt for logo generation
-    let prompt = `Create a professional logo design for "${companyName}", a ${industry.toLowerCase()} company. `;
-    
-    // Add style information
-    const styleDescriptions = {
-      modern: 'modern, minimalist, clean, contemporary, sleek',
-      classic: 'classic, traditional, timeless, elegant, refined',
-      creative: 'creative, artistic, unique, innovative, imaginative',
-      minimal: 'minimal, simple, clean, understated, sophisticated',
-      tech: 'tech, futuristic, digital, innovative, cutting-edge',
-      luxury: 'luxury, premium, elegant, sophisticated, high-end',
-      organic: 'organic, natural, flowing, curved, earth-inspired',
-      bold: 'bold, strong, impactful, powerful, dynamic'
-    };
-    
-    const styleDesc = styleDescriptions[style as keyof typeof styleDescriptions] || 'professional';
-    prompt += `The logo should have a ${styleDesc} style. `;
+    // Enhanced industry and description analysis for contextual logo generation
+    const businessContext = this.analyzeBusinessContext(description, companyName);
+    const industryImagery = this.getIndustrySpecificImagery(description, industry);
+    const styleModifiers = this.getAdvancedStyleModifiers(style);
+    const colorGuidance = this.getColorGuidance(colorScheme);
 
-    // Add color scheme
-    if (colorScheme !== 'custom') {
-      const colorDescriptions = {
-        blue: 'blue color palette with professional blue tones',
-        green: 'green color palette with growth and nature tones',
-        purple: 'purple color palette with creative and innovative tones',
-        orange: 'orange color palette with energetic and warm tones',
-        red: 'red color palette with bold and powerful tones',
-        black: 'monochrome black and white palette with sophisticated tones'
-      };
-      
-      const colorDesc = colorDescriptions[colorScheme as keyof typeof colorDescriptions] || 'professional colors';
-      prompt += `Use a ${colorDesc}. `;
-    } else {
-      prompt += 'Use appropriate professional colors. ';
+    // Build a contextually-aware, comprehensive prompt for logo generation
+    let prompt = `Create a professional, business-ready logo for "${companyName}"`;
+    
+    // Add business context and industry-specific elements
+    if (businessContext.businessType) {
+      prompt += `, a ${businessContext.businessType}`;
     }
+    
+    if (industryImagery.length > 0) {
+      prompt += `. Incorporate ${industryImagery.join(', ')} imagery`;
+    }
+    
+    prompt += `. `;
+    
+    // Add enhanced style information
+    prompt += `Design in a ${styleModifiers.primary} style with ${styleModifiers.secondary} elements. `;
+    
+
+    // Add sophisticated color guidance
+    prompt += `${colorGuidance} `;
 
     // Add business description
     if (description && description.trim()) {
-      prompt += `The company is described as: ${description.trim()}. `;
+      prompt += `Business focus: ${description.trim()}. `;
     }
 
     // Add keywords
     if (keywords && keywords.length > 0) {
-      prompt += `Key brand attributes include: ${keywords.join(', ')}. `;
+      prompt += `Brand attributes: ${keywords.join(', ')}. `;
     }
 
-    // Add technical requirements
-    prompt += `Create a vector-style logo that is clean, professional, scalable, and suitable for business use. The logo should work well on both light and dark backgrounds. Focus on clarity, memorability, and brand recognition. Avoid overly complex details that won't scale well at small sizes.`;
+    // Add critical requirements for perfect spelling and professionalism
+    prompt += `CRITICAL REQUIREMENTS: 1) The company name "${companyName}" must be spelled EXACTLY correct with perfect typography. 2) Create a clean, professional, scalable vector-style logo suitable for all business applications. 3) Ensure the design is memorable, unique, and immediately recognizable. 4) The logo must work on both light and dark backgrounds. 5) Use industry-appropriate symbolism while maintaining business professionalism. 6) Avoid overly complex details that won't scale at small sizes. 7) Ensure all text is legible and professionally typeset.`;
 
     return prompt;
+  }
+
+  private analyzeBusinessContext(description: string, companyName: string): { businessType: string } {
+    const desc = description.toLowerCase().trim();
+    const name = companyName.toLowerCase().trim();
+    
+    // Industry classification for appropriate imagery
+    if (desc.includes('strip club') || desc.includes('gentlemen\'s club') || desc.includes('adult entertainment')) {
+      return { businessType: 'upscale entertainment venue' };
+    } else if (desc.includes('bar') || desc.includes('pub') || desc.includes('brewery') || desc.includes('tavern')) {
+      return { businessType: 'hospitality and beverage establishment' };
+    } else if (desc.includes('restaurant') || desc.includes('cafe') || desc.includes('diner') || desc.includes('eatery')) {
+      return { businessType: 'dining establishment' };
+    } else if (desc.includes('gym') || desc.includes('fitness') || desc.includes('workout') || desc.includes('training')) {
+      return { businessType: 'fitness and wellness center' };
+    } else if (desc.includes('spa') || desc.includes('salon') || desc.includes('beauty') || desc.includes('massage')) {
+      return { businessType: 'beauty and wellness spa' };
+    } else if (desc.includes('tech') || desc.includes('software') || desc.includes('app') || desc.includes('digital')) {
+      return { businessType: 'technology company' };
+    } else if (desc.includes('consulting') || desc.includes('advisory') || desc.includes('services')) {
+      return { businessType: 'professional services firm' };
+    } else if (desc.includes('retail') || desc.includes('store') || desc.includes('shop') || desc.includes('boutique')) {
+      return { businessType: 'retail establishment' };
+    }
+    
+    return { businessType: 'business establishment' };
+  }
+
+  private getIndustrySpecificImagery(description: string, industry: string): string[] {
+    const desc = description.toLowerCase().trim();
+    const imagery: string[] = [];
+    
+    // Entertainment and nightlife
+    if (desc.includes('strip club') || desc.includes('gentlemen\'s club') || desc.includes('adult entertainment')) {
+      imagery.push('elegant silhouettes', 'sophisticated lighting elements', 'premium club aesthetics', 'upscale entertainment symbols');
+    } else if (desc.includes('bar') || desc.includes('pub') || desc.includes('brewery')) {
+      imagery.push('elegant glassware', 'sophisticated bar elements', 'premium beverage symbols');
+    } else if (desc.includes('restaurant') || desc.includes('cafe')) {
+      imagery.push('culinary elements', 'elegant dining symbols', 'gourmet food imagery');
+    } else if (desc.includes('gym') || desc.includes('fitness')) {
+      imagery.push('dynamic fitness symbols', 'strength and wellness elements', 'athletic design motifs');
+    } else if (desc.includes('spa') || desc.includes('salon') || desc.includes('beauty')) {
+      imagery.push('elegant beauty elements', 'wellness and relaxation symbols', 'sophisticated spa imagery');
+    } else if (desc.includes('tech') || desc.includes('software')) {
+      imagery.push('modern technological elements', 'digital innovation symbols', 'clean geometric patterns');
+    } else if (desc.includes('law') || desc.includes('legal')) {
+      imagery.push('professional legal symbols', 'scales of justice', 'sophisticated legal elements');
+    } else if (desc.includes('medical') || desc.includes('healthcare')) {
+      imagery.push('medical symbols', 'health and wellness elements', 'professional healthcare imagery');
+    } else if (desc.includes('real estate') || desc.includes('property')) {
+      imagery.push('architectural elements', 'property symbols', 'real estate design motifs');
+    } else if (desc.includes('finance') || desc.includes('investment')) {
+      imagery.push('financial symbols', 'growth and prosperity elements', 'professional finance imagery');
+    }
+    
+    return imagery;
+  }
+
+  private getAdvancedStyleModifiers(style: string): { primary: string; secondary: string } {
+    const styleMap = {
+      modern: { 
+        primary: 'contemporary modern', 
+        secondary: 'clean geometric lines, minimalist sophistication, and cutting-edge aesthetics' 
+      },
+      classic: { 
+        primary: 'timeless classic', 
+        secondary: 'traditional elegance, refined sophistication, and enduring appeal' 
+      },
+      creative: { 
+        primary: 'uniquely creative', 
+        secondary: 'artistic innovation, imaginative design elements, and distinctive character' 
+      },
+      minimal: { 
+        primary: 'elegantly minimal', 
+        secondary: 'sophisticated simplicity, understated refinement, and perfect balance' 
+      },
+      tech: { 
+        primary: 'cutting-edge technological', 
+        secondary: 'futuristic innovation, digital precision, and advanced design concepts' 
+      },
+      luxury: { 
+        primary: 'premium luxury', 
+        secondary: 'sophisticated opulence, high-end refinement, and exclusive elegance' 
+      },
+      organic: { 
+        primary: 'naturally organic', 
+        secondary: 'flowing curves, earth-inspired elements, and harmonious balance' 
+      },
+      bold: { 
+        primary: 'powerfully bold', 
+        secondary: 'strong impactful presence, dynamic energy, and commanding attention' 
+      }
+    };
+    
+    return styleMap[style as keyof typeof styleMap] || { 
+      primary: 'professional', 
+      secondary: 'clean design elements and business-appropriate aesthetics' 
+    };
+  }
+
+  private getColorGuidance(colorScheme: string): string {
+    const colorMap = {
+      blue: 'Use a sophisticated blue palette with professional navy, azure, and complementary blue tones that convey trust and reliability',
+      green: 'Use an elegant green palette with emerald, forest green, and natural tones that represent growth and prosperity',
+      purple: 'Use a creative purple palette with royal purple, violet, and sophisticated tones that convey innovation and luxury',
+      orange: 'Use an energetic orange palette with warm amber, sunset orange, and vibrant tones that represent creativity and enthusiasm',
+      red: 'Use a powerful red palette with deep crimson, burgundy, and bold tones that convey strength and passion',
+      black: 'Use an elegant monochrome palette with sophisticated blacks, charcoal grays, and pristine whites for timeless appeal',
+      custom: 'Use carefully selected professional colors that complement the business type and brand identity'
+    };
+    
+    return colorMap[colorScheme as keyof typeof colorMap] || 'Use appropriate professional colors that enhance brand recognition';
   }
 }
 
