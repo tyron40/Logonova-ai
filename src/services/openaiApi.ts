@@ -30,7 +30,7 @@ export class OpenAILogoService {
 
   async generateLogo(request: LogoGenerationRequest): Promise<string> {
     if (!this.hasValidApiKey()) {
-      throw new Error("OpenAI API key required.");
+      throw new Error("OpenAI API key is required.");
     }
 
     const apiKey = this.getApiKey()!;
@@ -47,7 +47,7 @@ export class OpenAILogoService {
           },
           body: JSON.stringify({
             model: "dall-e-3",
-            prompt,
+            prompt: prompt,
             size: "1024x1024",
             quality: "hd",
             n: 1,
@@ -64,21 +64,21 @@ export class OpenAILogoService {
       const data = await response.json();
       return data.data?.[0]?.url ?? "";
     } catch (err) {
-      throw new Error("Logo generation failed. Try again.");
+      console.error("Logo generation failed:", err);
+      throw new Error("Failed to generate logo. Try again.");
     }
   }
 
-  // Enhanced description generator
   async generateBusinessKeywords(
     companyName: string,
     description: string
   ): Promise<string> {
-    if (!this.hasValidApiKey()) throw new Error("API key required.");
-    const apiKey = this.getApiKey()!;
+    if (!this.hasValidApiKey()) throw new Error("OpenAI API key required.");
 
-    const prompt = `Enhance the brand description for "${companyName}". 
-    Description: "${description}"
-    Return ONLY a refined, professional brand description.`;
+    const apiKey = this.getApiKey()!;
+    const prompt = `Enhance the business description for "${companyName}". 
+Description: "${description}"
+Return ONLY a polished professional brand description.`;
 
     const res = await fetch(
       "https://api.openai.com/v1/chat/completions",
@@ -93,8 +93,7 @@ export class OpenAILogoService {
           messages: [
             {
               role: "system",
-              content:
-                "You produce polished, brand-ready business descriptions.",
+              content: "You create clean, professional brand descriptions.",
             },
             { role: "user", content: prompt },
           ],
@@ -107,30 +106,104 @@ export class OpenAILogoService {
     return data.choices?.[0]?.message?.content?.trim() ?? "";
   }
 
-  // NEW — Adult-nightlife mapping
+  // ---------------------------------------------------
+  // INDUSTRY + NIGHTLIFE IMAGE LOGIC
+  // ---------------------------------------------------
+
   private getNightlifeImagery(description: string): string[] {
     const desc = description.toLowerCase();
     const imagery: string[] = [];
 
     if (desc.includes("strip") || desc.includes("gentlemen"))
       imagery.push(
-        "sensual silhouette of a dancer (non-nude)",
-        "pole dance abstract figure",
-        "neon light outlines",
-        "nightclub stage lighting",
-        "seductive but tasteful feminine silhouette"
+        "tasteful dancer silhouette (non-nude)",
+        "pole dance abstract symbol",
+        "neon nightlife outlines",
+        "stage lighting beams",
+        "sensual feminine silhouette (abstract)"
       );
 
     if (desc.includes("nightclub") || desc.includes("bar"))
       imagery.push(
-        "glowing neon signs",
-        "cocktail or martini shapes",
-        "VIP nightlife motifs",
-        "spotlight beams"
+        "neon cocktail icon",
+        "VIP emblem",
+        "neon sign shapes",
+        "spotlight glow"
       );
 
     return imagery;
   }
+
+  private getIndustrySpecificImagery(description: string, industry: string) {
+    const desc = description.toLowerCase();
+    const imagery: string[] = [];
+
+    if (desc.includes("burger") || desc.includes("restaurant"))
+      imagery.push("burger icon", "chef elements", "food emblem", "kitchen tools");
+
+    if (desc.includes("tech"))
+      imagery.push("digital geometric shapes", "circuit patterns");
+
+    if (desc.includes("fitness"))
+      imagery.push("strength icons", "movement symbols");
+
+    if (desc.includes("beauty"))
+      imagery.push("feminine curve shapes", "elegant floral elements");
+
+    if (desc.includes("finance"))
+      imagery.push("growth arrow", "shield", "professional line-art emblem");
+
+    return imagery;
+  }
+
+  private getAdvancedStyleModifiers(style: string) {
+    const map: any = {
+      modern: {
+        primary: "modern minimalist",
+        secondary: "geometric precision and smooth line-work",
+      },
+      classic: {
+        primary: "classic timeless",
+        secondary: "refined symmetry and clean serif typefaces",
+      },
+      bold: {
+        primary: "bold impactful",
+        secondary: "strong shapes and high contrast",
+      },
+      creative: {
+        primary: "creative artistic",
+        secondary: "abstract imaginative shapes",
+      },
+      minimal: {
+        primary: "minimal clean",
+        secondary: "balanced simplicity and open spacing",
+      },
+    };
+
+    return (
+      map[style] || {
+        primary: "professional",
+        secondary: "clean composition and balanced geometry",
+      }
+    );
+  }
+
+  private getColorGuidance(color: string) {
+    const map: any = {
+      blue: "professional blues with modern contrast",
+      green: "natural or financial green palette",
+      purple: "creative neon purple accents",
+      red: "bold energetic reds",
+      orange: "warm inviting orange glows",
+      black: "high-contrast black and grayscale palette",
+    };
+
+    return map[color] || "clean modern brand-appropriate colors";
+  }
+
+  // ---------------------------------------------------
+  // MAIN PROMPT GENERATOR — WITH HARD SINGLE-LOGO RULES
+  // ---------------------------------------------------
 
   private buildLogoPrompt(request: LogoGenerationRequest): string {
     const { companyName, industry, style, colorScheme, description, keywords } =
@@ -145,29 +218,28 @@ export class OpenAILogoService {
     const colorGuidance = this.getColorGuidance(colorScheme);
 
     return `
-Create a SINGLE, clean, professional vector-style logo for the company "${companyName}".
+Create a SINGLE, clean, professional vector-style logo for the business "${companyName}".
 
-STRICT RULES:
+STRICT NON-NEGOTIABLE RULES:
 • EXACT spelling of "${companyName}" — perfect typography.
-• ONE logo only. No duplicate icons or variants inside the same image.
-• No mockups, no watermarks, no 3D backgrounds.
-• The design must be unique every generation.
-• Include ONE symbol + clean text layout.
+• ONLY ONE logo in the entire image.
+• NO mockups, no thumbnails, no tiny logos, no badge variations.
+• NO grid layouts, no rows of logos, no stacked alternate designs.
+• NO watermarks, packaging, or repeated symbols.
+• The image must contain ONE symbol + ONE text layout ONLY.
+• White or plain background preferred unless color enhances logo clarity.
 
-BUSINESS TYPE:
+BUSINESS CATEGORY:
 ${description}
 
-INDUSTRY SYMBOLISM TO USE:
+INDUSTRY SYMBOLISM:
 ${industryImagery.join(", ") || "industry-appropriate shapes"}
 
-NIGHTLIFE / ADULT-CLUB SYMBOLISM (allowed):
+NIGHTLIFE SYMBOLISM (allowed if relevant):
 ${nightlifeImagery.join(", ") || "none"}
 
-These elements *are allowed*: seductive silhouettes, pole dancing abstract shapes, nightclub neon signs, nightlife lighting, artistic feminine outlines.  
-These elements *are NOT allowed*: nudity, explicit detail, realistic human faces.
-
-STYLE:
-${styleModifiers.primary}, with ${styleModifiers.secondary}.
+DESIGN STYLE:
+${styleModifiers.primary} with ${styleModifiers.secondary}
 
 COLOR PALETTE:
 ${colorGuidance}
@@ -176,65 +248,11 @@ BRAND ATTRIBUTES:
 ${keywords.join(", ")}
 
 FINAL OUTPUT REQUIREMENTS:
-• Strong, bold nightlife or club aesthetic if description matches.
-• Unique, memorable emblem suitable for signage + marketing.
-• Vector-style clarity: crisp lines, high contrast, simple shapes.
+• Vector-style clarity: crisp lines, clean geometry.
+• Balanced, centered composition.
+• Unique design every generation.
+• Readable at small and large sizes.
 `.trim();
-  }
-
-  private getIndustrySpecificImagery(description: string, industry: string) {
-    const imagery: string[] = [];
-    const desc = description.toLowerCase();
-
-    if (desc.includes("tech")) imagery.push("digital geometric shapes");
-    if (desc.includes("fitness")) imagery.push("strength and movement icons");
-    if (desc.includes("beauty")) imagery.push("elegant feminine curves");
-
-    return imagery;
-  }
-
-  private getAdvancedStyleModifiers(style: string) {
-    const map: any = {
-      modern: {
-        primary: "modern minimalist",
-        secondary: "geometric precision and smooth lines",
-      },
-      luxury: {
-        primary: "luxury high-end",
-        secondary: "metallic gradients and elegant shapes",
-      },
-      bold: {
-        primary: "bold impactful",
-        secondary: "thick lines and strong forms",
-      },
-      creative: {
-        primary: "creative artistic",
-        secondary: "playful abstract shapes",
-      },
-      minimal: {
-        primary: "minimal clean",
-        secondary: "simple balanced geometry",
-      },
-    };
-
-    return (
-      map[style] || {
-        primary: "professional",
-        secondary: "clean composition and balance",
-      }
-    );
-  }
-
-  private getColorGuidance(color: string) {
-    const map: any = {
-      blue: "bold electric blues with nightclub undertones",
-      purple: "neon purple with nightlife glow",
-      red: "deep seductive reds with nightclub lighting",
-      black: "high-contrast black with neon accents",
-      green: "vibrant nightclub green lighting",
-      orange: "warm nightlife orange glows",
-    };
-    return map[color] || "clean modern colors appropriate for the brand";
   }
 }
 
