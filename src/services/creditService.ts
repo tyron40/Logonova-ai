@@ -228,6 +228,31 @@ export class CreditService {
       console.error('Error migrating credits:', error);
     }
   }
+
+  // Admin method to give credits to any user
+  giveCreditsToUser(userId: string, amount: number, description: string = 'Admin credit grant'): boolean {
+    try {
+      const transaction: CreditTransaction = {
+        id: crypto.randomUUID(),
+        type: 'purchase',
+        amount,
+        description,
+        timestamp: new Date()
+      };
+
+      const data = this.getCreditData(userId);
+      data.balance += amount;
+      data.transactions.push(transaction);
+      data.lastUpdated = new Date();
+
+      this.saveCreditData(data, userId);
+      console.log(`Admin: Added ${amount} credits to user ${userId}. New balance: ${data.balance}`);
+      return true;
+    } catch (error) {
+      console.error('Error giving credits to user:', error);
+      return false;
+    }
+  }
 }
 
 export const creditService = CreditService.getInstance();
