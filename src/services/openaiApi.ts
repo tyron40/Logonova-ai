@@ -29,57 +29,74 @@ export class OpenAILogoService {
   }
 
   async generateLogo(request: LogoGenerationRequest): Promise<string> {
-    if (!this.hasValidApiKey()) throw new Error("OpenAI API key required.");
+    if (!this.hasValidApiKey()) {
+      throw new Error("OpenAI API key is required.");
+    }
 
     const apiKey = this.getApiKey()!;
     const prompt = this.buildLogoPrompt(request);
 
     try {
-      const response = await fetch(
-        "https://api.openai.com/v1/images/generations",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "dall-e-3",
-            prompt,
-            size: "1024x1024",
-            quality: "hd",
-            n: 1,
-            response_format: "url",
-          }),
-        }
-      );
+      const response = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "dall-e-3",
+          prompt,
+          size: "1024x1024",
+          quality: "hd",
+          n: 1,
+          response_format: "url",
+          // HARD NEGATIVE CONSTRAINTS
+          negative_prompt: `
+            multiple logos, 
+            thumbnails, 
+            mockups, 
+            previews, 
+            grid layout, 
+            badge variations, 
+            small alternate icons, 
+            duplicate symbols, 
+            brand kit, 
+            template layout, 
+            collage, 
+            watermark text, 
+            second logo, 
+            bottom row images, 
+            extra icons, 
+            two-part designs`
+        })
+      });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => null);
-        throw new Error(error?.error?.message ?? "Image generation failed.");
+        const errorData = await response.json().catch(() => ({ error: { message: "Unknown error" } }));
+        throw new Error(errorData.error?.message ?? "Image generation failed.");
       }
 
       const data = await response.json();
       return data.data?.[0]?.url ?? "";
-    } catch (err) {
-      console.error("Logo generation failed:", err);
-      throw new Error("Failed to generate logo.");
+    } catch (error) {
+      console.error("Image generation Error:", error);
+      throw new Error("Failed to generate logo. Try again.");
     }
   }
 
-  async generateBusinessKeywords(
-    companyName: string,
-    description: string
-  ): Promise<string> {
-    if (!this.hasValidApiKey()) throw new Error("OpenAI API key required.");
+  async generateBusinessKeywords(companyName: string, description: string): Promise<string> {
+    if (!this.hasValidApiKey()) {
+      throw new Error("OpenAI API key required.");
+    }
+
     const apiKey = this.getApiKey()!;
+    const prompt = `
+      Improve the business description for "${companyName}".
+      Original: "${description}"
+      Return ONLY a polished brand-ready description.
+    `;
 
-    const prompt = `Enhance this business description for logo creation:
-Business: "${companyName}"
-Description: "${description}"
-Return ONLY a polished, professional description.`;
-
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -90,163 +107,148 @@ Return ONLY a polished, professional description.`;
         messages: [
           {
             role: "system",
-            content:
-              "You create clean, sharp business descriptions optimized for logo creation.",
+            content: "You create polished business descriptions optimized for logo generation."
           },
-          { role: "user", content: prompt },
+          { role: "user", content: prompt }
         ],
-        max_tokens: 200,
-      }),
+        max_tokens: 200
+      })
     });
 
-    const data = await res.json();
+    const data = await response.json();
     return data.choices?.[0]?.message?.content?.trim() ?? "";
   }
 
-  // --------------------------------------------------
-  // INDUSTRY + NIGHTLIFE SYMBOL LOGIC
-  // --------------------------------------------------
+  // --------------------------------------------
+  // SUPPORT FUNCTIONS FOR INDUSTRY SYMBOLS
+  // --------------------------------------------
 
   private getNightlifeImagery(description: string): string[] {
     const desc = description.toLowerCase();
-    const imagery: string[] = [];
+    const list: string[] = [];
 
     if (desc.includes("strip") || desc.includes("gentlemen"))
-      imagery.push(
+      list.push(
         "abstract dancer silhouette (non-nude)",
-        "pole dance minimalist symbol",
-        "neon nightlife emblem",
-        "stage lighting glow",
-        "sensual feminine outline (abstract)"
+        "pole dance line-icon",
+        "neon nightclub outline",
+        "stage spotlight glow"
       );
 
     if (desc.includes("nightclub") || desc.includes("bar"))
-      imagery.push("neon cocktail icon", "VIP emblem", "glowing neon outline");
+      list.push("neon cocktail icon", "VIP emblem", "glowing neon border");
 
-    return imagery;
+    return list;
   }
 
   private getIndustrySpecificImagery(description: string, industry: string) {
     const desc = description.toLowerCase();
-    const imagery: string[] = [];
+    const list: string[] = [];
 
     if (desc.includes("burger"))
-      imagery.push("burger icon", "restaurant emblem", "chef tools");
+      list.push("burger icon", "restaurant emblem", "chef hat line-art");
 
     if (desc.includes("food"))
-      imagery.push("culinary symbol", "dining elements");
+      list.push("culinary iconography", "fork and knife symbol");
 
     if (desc.includes("tech"))
-      imagery.push("circuit patterns", "digital geometric shapes");
+      list.push("digital geometric shapes", "circuit pattern emblem");
 
     if (desc.includes("fitness"))
-      imagery.push("strength icons", "movement silhouettes");
+      list.push("strength symbol", "motion silhouette");
 
     if (desc.includes("beauty"))
-      imagery.push("feminine curves", "elegant floral line art");
+      list.push("feminine curves", "floral elegance line art");
 
     if (desc.includes("finance"))
-      imagery.push("bar chart", "growth arrow", "shield emblem");
+      list.push("growth arrow", "shield protection emblem");
 
-    return imagery;
+    return list;
   }
 
   private getAdvancedStyleModifiers(style: string) {
     const map: any = {
       modern: {
         primary: "modern minimalist",
-        secondary: "geometric lines and clean symmetry",
+        secondary: "geometric sharp line-work"
       },
       classic: {
         primary: "classic timeless",
-        secondary: "refined serif typography and balanced layout",
+        secondary: "refined serif typography"
       },
       bold: {
-        primary: "bold impactful",
-        secondary: "strong shapes and dramatic contrast",
+        primary: "bold strong",
+        secondary: "thick lines and intense contrast"
       },
       creative: {
-        primary: "creative artistic",
-        secondary: "unique abstract shapes",
+        primary: "creative abstract",
+        secondary: "unique imaginative shapes"
       },
       minimal: {
         primary: "minimal clean",
-        secondary: "simple geometry and open spacing",
-      },
+        secondary: "uncluttered balanced geometry"
+      }
     };
 
-    return (
-      map[style] || {
-        primary: "professional",
-        secondary: "clean balanced composition",
-      }
-    );
+    return map[style] || { primary: "professional", secondary: "clean balanced composition" };
   }
 
   private getColorGuidance(color: string) {
     const map: any = {
-      blue: "professional blues with high contrast",
-      green: "natural or financial greens",
+      blue: "professional blues with cool gradients",
+      green: "fresh greens with modern contrast",
       purple: "creative neon purples",
-      red: "bold energetic reds",
-      orange: "warm motivated oranges",
-      black: "high-contrast black & white palette",
+      red: "bold high-energy reds",
+      orange: "warm strong oranges",
+      black: "high-contrast black + white palette"
     };
 
-    return map[color] || "clean modern brand colors";
+    return map[color] || "clean modern branding colors";
   }
 
-  // --------------------------------------------------
-  // GLOBAL STRICT PROMPT RULESET — APPLIES TO *ALL* GENERATIONS
-  // --------------------------------------------------
+  // --------------------------------------------
+  // MAIN PROMPT — WITH HARD GLOBAL RESTRICTIONS FIRST
+  // --------------------------------------------
 
   private buildLogoPrompt(request: LogoGenerationRequest): string {
-    const { companyName, industry, style, colorScheme, description, keywords } =
-      request;
+    const { companyName, industry, style, colorScheme, description, keywords } = request;
 
-    const industryImagery = this.getIndustrySpecificImagery(
-      description,
-      industry
-    );
-    const nightlifeImagery = this.getNightlifeImagery(description);
-    const styleModifiers = this.getAdvancedStyleModifiers(style);
-    const colorGuidance = this.getColorGuidance(colorScheme);
+    const industrySymbols = this.getIndustrySpecificImagery(description, industry);
+    const nightlifeSymbols = this.getNightlifeImagery(description);
+    const styleInfo = this.getAdvancedStyleModifiers(style);
+    const colors = this.getColorGuidance(colorScheme);
 
     return `
-Generate a SINGLE, professional, vector-style logo for "${companyName}".
+IMPORTANT — STRICT GLOBAL RULES (APPLY TO ALL LOGOS, EVERY TIME):
+• Output MUST contain ONE single logo only.
+• NO thumbnails, NO mockups, NO previews, NO multiple versions.
+• NO bottom rows of icons, NO grid layouts, NO badge sets.
+• NO duplicates, NO alternate designs inside the same image.
+• NO product mockups, business cards, signage, or backgrounds.
+• NO extra icons or symbols outside the main single logo.
+• EXACT spelling of "${companyName}" only.
+• Centered composition. Clean vector-style.
+• Background must be plain, simple, or lightly gradiented.
 
-🚫 GLOBAL STRICT RULES (ALWAYS APPLY):
-• ONLY ONE logo in the entire image — absolutely no duplicates.
-• NO mockups, NO thumbnails, NO badge variations, NO rows, NO grids.
-• NO multiple logo versions inside the same image.
-• NO watermarks, no extra text outside the logo.
-• Must be ONE icon/symbol + ONE text layout only.
-• Centered, balanced composition.
-• Plain or minimal background only.
-• Perfect, exact spelling: "${companyName}".
+Create a professional, unique vector-style logo for "${companyName}".
 
-BUSINESS CONTEXT:
+BUSINESS DESCRIPTION:
 ${description}
 
 INDUSTRY SYMBOLS:
-${industryImagery.join(", ") || "industry-appropriate shapes"}
+${industrySymbols.join(", ") || "industry-suitable shapes"}
 
 NIGHTLIFE SYMBOLS (if relevant):
-${nightlifeImagery.join(", ") || "none"}
+${nightlifeSymbols.join(", ") || "none"}
 
-STYLE:
-${styleModifiers.primary} with ${styleModifiers.secondary}
+DESIGN STYLE:
+${styleInfo.primary} with ${styleInfo.secondary}
 
 COLOR PALETTE:
-${colorGuidance}
+${colors}
 
 BRAND ATTRIBUTES:
 ${keywords.join(", ")}
-
-FINAL OUTPUT:
-• High contrast vector-style clarity.
-• Clean lines, sharp geometry.
-• Unique logo every generation.
 `.trim();
   }
 }
