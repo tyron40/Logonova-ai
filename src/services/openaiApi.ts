@@ -29,9 +29,7 @@ export class OpenAILogoService {
   }
 
   async generateLogo(request: LogoGenerationRequest): Promise<string> {
-    if (!this.hasValidApiKey()) {
-      throw new Error("OpenAI API key is required.");
-    }
+    if (!this.hasValidApiKey()) throw new Error("OpenAI API key is required.");
 
     const apiKey = this.getApiKey()!;
     const prompt = this.buildLogoPrompt(request);
@@ -54,30 +52,27 @@ export class OpenAILogoService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: { message: "Unknown error" } }));
-        throw new Error(errorData.error?.message ?? "Image generation failed.");
+        const error = await response.json().catch(() => ({ error: { message: "Unknown error" } }));
+        throw new Error(error.error?.message ?? "Image generation failed.");
       }
 
       const data = await response.json();
       return data.data?.[0]?.url ?? "";
-
-    } catch (error) {
-      console.error("Image generation Error:", error);
+    } catch (err) {
+      console.error("Logo Generation Error:", err);
       throw new Error("Failed to generate logo. Try again.");
     }
   }
 
   async generateBusinessKeywords(companyName: string, description: string): Promise<string> {
-    if (!this.hasValidApiKey()) {
-      throw new Error("OpenAI API key required.");
-    }
+    if (!this.hasValidApiKey()) throw new Error("OpenAI API key required.");
 
     const apiKey = this.getApiKey()!;
     const prompt = `
-      Enhance this business description for professional branding:
+      Improve this business description for branding:
       Business: "${companyName}"
       Description: "${description}"
-      Return ONLY a polished, final brand description — no extra text.
+      Return ONLY a polished business description with no extra explanations.
     `;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -91,21 +86,21 @@ export class OpenAILogoService {
         messages: [
           {
             role: "system",
-            content: "You produce refined brand descriptions optimized for logo design."
+            content: "You refine and enhance business descriptions for branding and logo creation."
           },
           { role: "user", content: prompt }
         ],
-        max_tokens: 200,
-      }),
+        max_tokens: 200
+      })
     });
 
     const data = await response.json();
     return data.choices?.[0]?.message?.content?.trim() ?? "";
   }
 
-  // --------------------------------------------
-  // INDUSTRY / NIGHTLIFE SYMBOL COMPONENTS
-  // --------------------------------------------
+  // ------------------------------
+  // SYMBOL / INDUSTRY HELPERS
+  // ------------------------------
 
   private getNightlifeImagery(description: string): string[] {
     const desc = description.toLowerCase();
@@ -114,17 +109,13 @@ export class OpenAILogoService {
     if (desc.includes("strip") || desc.includes("gentlemen"))
       list.push(
         "abstract dancer silhouette (non-nude)",
-        "pole dance minimal line-art symbol",
+        "pole dance minimal icon",
         "neon nightclub outline",
-        "stage spotlight glow"
+        "spotlight glow"
       );
 
     if (desc.includes("nightclub") || desc.includes("bar"))
-      list.push(
-        "neon cocktail icon",
-        "VIP emblem",
-        "nightlife neon border"
-      );
+      list.push("neon cocktail icon", "VIP badge", "nightlife neon border");
 
     return list;
   }
@@ -134,22 +125,22 @@ export class OpenAILogoService {
     const list: string[] = [];
 
     if (desc.includes("burger"))
-      list.push("burger icon", "restaurant emblem", "chef hat line-art");
+      list.push("burger icon", "chef hat emblem", "restaurant badge");
 
     if (desc.includes("food"))
-      list.push("culinary tools icon", "fork and knife symbol");
+      list.push("fork and knife", "culinary symbols");
 
     if (desc.includes("tech"))
-      list.push("geometric tech shapes", "digital circuit emblem");
+      list.push("digital geometric shapes", "circuit emblem");
 
     if (desc.includes("fitness"))
       list.push("strength symbol", "movement silhouette");
 
     if (desc.includes("beauty"))
-      list.push("feminine curves", "elegant floral line art");
+      list.push("feminine line-art curves", "floral elegance");
 
     if (desc.includes("finance"))
-      list.push("growth arrow icon", "shield emblem");
+      list.push("growth arrow", "shield emblem", "professional lines");
 
     return list;
   }
@@ -162,15 +153,15 @@ export class OpenAILogoService {
       },
       classic: {
         primary: "classic timeless",
-        secondary: "refined serif typography and balanced layout"
+        secondary: "refined, elegant, symmetrical"
       },
       bold: {
         primary: "bold impactful",
-        secondary: "strong heavy-line composition"
+        secondary: "strong heavy-line design"
       },
       creative: {
         primary: "creative artistic",
-        secondary: "abstract imaginative shapes"
+        secondary: "imaginative and abstract"
       },
       minimal: {
         primary: "minimal clean",
@@ -183,20 +174,20 @@ export class OpenAILogoService {
 
   private getColorGuidance(color: string) {
     const map: any = {
-      blue: "professional blue palette with high contrast",
+      blue: "professional blue palette with clean contrast",
       green: "natural or financial greens",
       purple: "creative neon purples",
       red: "bold energetic reds",
-      orange: "warm inviting oranges",
+      orange: "warm and inviting oranges",
       black: "high-contrast black and white palette"
     };
 
-    return map[color] || "clean modern brand colors";
+    return map[color] || "clean modern color palette";
   }
 
-  // --------------------------------------------
-  // MAIN PROMPT — GLOBAL STRICT ENFORCEMENT
-  // --------------------------------------------
+  // ------------------------------
+  // MAIN PROMPT — STRICT RULESET
+  // ------------------------------
 
   private buildLogoPrompt(request: LogoGenerationRequest): string {
     const { companyName, industry, style, colorScheme, description, keywords } = request;
@@ -211,23 +202,26 @@ IMPORTANT — GLOBAL HARD RULES (APPLY TO EVERY GENERATION):
 • The final image MUST contain ONE (1) single centered logo only — no exceptions.
 • Absolutely NO thumbnails, NO mockups, NO preview rows, NO grids, NO brand kits.
 • No small icons underneath, no repeated symbols, no alternate versions anywhere.
-• No placeholder text, no random letters — ONLY the exact company name: "${companyName}".
-• The company name "${companyName}" MUST appear clearly and be part of the actual logo design.
-• The text must be readable, clean, and integrated into the emblem.
-• No fake spellings or substitutions.
-• No watermarks or extra text outside the logo.
 • Clean vector-style artwork only.
 • Background must be plain or minimal.
+
+TEXT ENFORCEMENT — STRICT, DO NOT IGNORE:
+• The company name MUST appear exactly as: "${companyName}".
+• The visible text MUST be spelled EXACTLY "${companyName}" — perfect clarity & typography.
+• NO placeholder text, NO random letters, NO fake words, NO gibberish.
+• The logo MUST include "${companyName}" as readable, integrated text.
+• No abbreviations, no shortened forms, no alternate spellings.
+• NO other text is allowed besides "${companyName}".
 
 Create a professional vector-style logo for "${companyName}".
 
 BUSINESS DESCRIPTION:
 ${description}
 
-INDUSTRY SYMBOLS (if applicable):
+INDUSTRY SYMBOLS:
 ${industrySymbols.join(", ") || "industry-appropriate shapes"}
 
-NIGHTLIFE SYMBOLS (if applicable):
+NIGHTLIFE SYMBOLS:
 ${nightlifeSymbols.join(", ") || "none"}
 
 DESIGN STYLE:
@@ -238,6 +232,13 @@ ${colorPalette}
 
 BRAND ATTRIBUTES:
 ${keywords.join(", ")}
+
+TEXT REQUIREMENT (REINFORCEMENT — AI MUST FOLLOW):
+Write the company name clearly as: "${companyName}".
+TEXT TO RENDER: "${companyName}"
+VISIBLE TEXT: "${companyName}"
+DISPLAYED TEXT: "${companyName}"
+RENDER EXACTLY: "${companyName}"
 `.trim();
   }
 }
