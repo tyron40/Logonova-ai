@@ -45,7 +45,7 @@ export class OpenAILogoService {
         },
         body: JSON.stringify({
           model: "dall-e-3",
-          prompt,
+          prompt: prompt,
           size: "1024x1024",
           quality: "hd",
           n: 1,
@@ -120,7 +120,11 @@ export class OpenAILogoService {
       );
 
     if (desc.includes("nightclub") || desc.includes("bar"))
-      list.push("neon cocktail icon", "VIP emblem", "nightlife neon border");
+      list.push(
+        "neon cocktail icon",
+        "VIP emblem",
+        "nightlife neon border"
+      );
 
     return list;
   }
@@ -130,7 +134,7 @@ export class OpenAILogoService {
     const list: string[] = [];
 
     if (desc.includes("burger"))
-      list.push("burger icon", "restaurant emblem", "chef line-art");
+      list.push("burger icon", "restaurant emblem", "chef hat line-art");
 
     if (desc.includes("food"))
       list.push("culinary tools icon", "fork and knife symbol");
@@ -145,7 +149,7 @@ export class OpenAILogoService {
       list.push("feminine curves", "elegant floral line art");
 
     if (desc.includes("finance"))
-      list.push("growth arrow icon", "shield financial emblem");
+      list.push("growth arrow icon", "shield emblem");
 
     return list;
   }
@@ -162,11 +166,11 @@ export class OpenAILogoService {
       },
       bold: {
         primary: "bold impactful",
-        secondary: "thick lines and high contrast"
+        secondary: "strong heavy-line composition"
       },
       creative: {
         primary: "creative artistic",
-        secondary: "abstract imaginative design language"
+        secondary: "abstract imaginative shapes"
       },
       minimal: {
         primary: "minimal clean",
@@ -179,19 +183,19 @@ export class OpenAILogoService {
 
   private getColorGuidance(color: string) {
     const map: any = {
-      blue: "professional blue palette with strong contrast",
-      green: "natural or financial greens with clarity",
+      blue: "professional blue palette with high contrast",
+      green: "natural or financial greens",
       purple: "creative neon purples",
       red: "bold energetic reds",
-      orange: "warm strong oranges",
-      black: "high-contrast monochrome palette"
+      orange: "warm inviting oranges",
+      black: "high-contrast black and white palette"
     };
 
-    return map[color] || "clean modern branding colors";
+    return map[color] || "clean modern brand colors";
   }
 
   // --------------------------------------------
-  // MASTER PROMPT WITH GLOBAL STRICT RULES
+  // MAIN PROMPT — GLOBAL STRICT ENFORCEMENT
   // --------------------------------------------
 
   private buildLogoPrompt(request: LogoGenerationRequest): string {
@@ -203,23 +207,25 @@ export class OpenAILogoService {
     const colorPalette = this.getColorGuidance(colorScheme);
 
     return `
-IMPORTANT — GLOBAL HARD RULES (ALWAYS APPLY):
-• The final output MUST contain ONE (1) single centered logo only.
-• Absolutely NO thumbnails, NO mockups, NO preview rows, NO grids.
-• No duplicate icons, no alternate versions, no brand kits.
-• No second symbol, no small icons placed below, no multi-logo compositions.
-• No watermarks or extra text outside the main logo.
-• Must be a clean vector-style professional logo.
-• Plain, simple, or slightly gradient background only.
-• Exact spelling of the company name: "${companyName}".
+IMPORTANT — GLOBAL HARD RULES (APPLY TO EVERY GENERATION):
+• The final image MUST contain ONE (1) single centered logo only — no exceptions.
+• Absolutely NO thumbnails, NO mockups, NO preview rows, NO grids, NO brand kits.
+• No small icons underneath, no repeated symbols, no alternate versions anywhere.
+• No placeholder text, no random letters — ONLY the exact company name: "${companyName}".
+• The company name "${companyName}" MUST appear clearly and be part of the actual logo design.
+• The text must be readable, clean, and integrated into the emblem.
+• No fake spellings or substitutions.
+• No watermarks or extra text outside the logo.
+• Clean vector-style artwork only.
+• Background must be plain or minimal.
 
-Create a unique vector-style logo for "${companyName}".
+Create a professional vector-style logo for "${companyName}".
 
 BUSINESS DESCRIPTION:
 ${description}
 
 INDUSTRY SYMBOLS (if applicable):
-${industrySymbols.join(", ") || "industry-related shapes"}
+${industrySymbols.join(", ") || "industry-appropriate shapes"}
 
 NIGHTLIFE SYMBOLS (if applicable):
 ${nightlifeSymbols.join(", ") || "none"}
