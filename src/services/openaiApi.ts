@@ -109,7 +109,7 @@ export class OpenAILogoService {
     if (desc.includes("strip") || desc.includes("gentlemen"))
       list.push(
         "abstract dancer silhouette (non-nude)",
-        "pole dance minimal icon",
+        "minimal pole-dance icon",
         "neon nightclub outline",
         "spotlight glow"
       );
@@ -128,19 +128,19 @@ export class OpenAILogoService {
       list.push("burger icon", "chef hat emblem", "restaurant badge");
 
     if (desc.includes("food"))
-      list.push("fork and knife", "culinary symbols");
+      list.push("culinary tools", "fork and knife badge");
 
     if (desc.includes("tech"))
-      list.push("digital geometric shapes", "circuit emblem");
+      list.push("digital geometric shapes", "circuit-style emblem");
 
     if (desc.includes("fitness"))
       list.push("strength symbol", "movement silhouette");
 
     if (desc.includes("beauty"))
-      list.push("feminine line-art curves", "floral elegance");
+      list.push("floral line-art", "feminine curves");
 
     if (desc.includes("finance"))
-      list.push("growth arrow", "shield emblem", "professional lines");
+      list.push("growth arrow", "shield emblem");
 
     return list;
   }
@@ -153,15 +153,15 @@ export class OpenAILogoService {
       },
       classic: {
         primary: "classic timeless",
-        secondary: "refined, elegant, symmetrical"
+        secondary: "refined elegant balance"
       },
       bold: {
         primary: "bold impactful",
-        secondary: "strong heavy-line design"
+        secondary: "heavy line-weight design"
       },
       creative: {
         primary: "creative artistic",
-        secondary: "imaginative and abstract"
+        secondary: "abstract imaginative flair"
       },
       minimal: {
         primary: "minimal clean",
@@ -169,7 +169,7 @@ export class OpenAILogoService {
       }
     };
 
-    return map[style] || { primary: "professional", secondary: "clean balanced identity" };
+    return map[style] || { primary: "professional", secondary: "balanced commercial identity" };
   }
 
   private getColorGuidance(color: string) {
@@ -178,11 +178,11 @@ export class OpenAILogoService {
       green: "natural or financial greens",
       purple: "creative neon purples",
       red: "bold energetic reds",
-      orange: "warm and inviting oranges",
+      orange: "warm inviting oranges",
       black: "high-contrast black and white palette"
     };
 
-    return map[color] || "clean modern color palette";
+    return map[color] || "clean modern brand colors";
   }
 
   // ------------------------------
@@ -199,19 +199,20 @@ export class OpenAILogoService {
 
     return `
 IMPORTANT — GLOBAL HARD RULES (APPLY TO EVERY GENERATION):
-• The final image MUST contain ONE (1) single centered logo only — no exceptions.
-• Absolutely NO thumbnails, NO mockups, NO preview rows, NO grids, NO brand kits.
-• No small icons underneath, no repeated symbols, no alternate versions anywhere.
-• Clean vector-style artwork only.
-• Background must be plain or minimal.
 
-TEXT ENFORCEMENT — STRICT, DO NOT IGNORE:
-• The company name MUST appear exactly as: "${companyName}".
-• The visible text MUST be spelled EXACTLY "${companyName}" — perfect clarity & typography.
-• NO placeholder text, NO random letters, NO fake words, NO gibberish.
-• The logo MUST include "${companyName}" as readable, integrated text.
-• No abbreviations, no shortened forms, no alternate spellings.
-• NO other text is allowed besides "${companyName}".
+• NON-NEGOTIABLE: The output MUST be a single, flat, standalone centered logo — nothing else.
+• NON-NEGOTIABLE: No mockups, no business cards, no paper, no packaging, no products, no shirts, no signage, no stationery, no scenes, no 3D rooms.
+• NON-NEGOTIABLE: The logo cannot appear printed, photographed, displayed, staged, or shown in any real-world environment.
+• NON-NEGOTIABLE: The image must contain EXACTLY ONE logo — no duplicates, no alternate placements, no multiple versions.
+• NON-NEGOTIABLE: The business name "${companyName}" MUST appear inside the logo clearly and spelled perfectly.
+• Absolutely NO thumbnails, NO preview rows, NO grids, NO brand kits.
+• Background must be plain, minimal, non-realistic, NOT a physical surface.
+• Clean vector-style artwork only.
+
+TEXT ENFORCEMENT — STRICT AND REQUIRED:
+• The visible text MUST be spelled EXACTLY "${companyName}".
+• No placeholder text, no fake words, no random letters, no abbreviations.
+• No other text is allowed besides "${companyName}".
 
 Create a professional vector-style logo for "${companyName}".
 
@@ -233,8 +234,7 @@ ${colorPalette}
 BRAND ATTRIBUTES:
 ${keywords.join(", ")}
 
-TEXT REQUIREMENT (REINFORCEMENT — AI MUST FOLLOW):
-Write the company name clearly as: "${companyName}".
+TEXT REQUIREMENT (REINFORCEMENT):
 TEXT TO RENDER: "${companyName}"
 VISIBLE TEXT: "${companyName}"
 DISPLAYED TEXT: "${companyName}"
