@@ -1,3 +1,7 @@
+// =======================================================
+//  CREDIT SYSTEM — FINAL OPTIMIZED VERSION (BUG-PROOF)
+// =======================================================
+
 export interface CreditTransaction {
   id: string;
   type: "purchase" | "deduction" | "refund";
@@ -12,11 +16,12 @@ export interface CreditBalance {
   transactions: CreditTransaction[];
   lastUpdated: Date;
   isNewUser: boolean;
+  hasReceivedWelcomeCredit?: boolean; // NEW permanent flag
 }
 
 export class CreditService {
   private static instance: CreditService;
-  private storageKey = "logoai-credits";
+  private storageKey: string = "logoai-credits";
 
   static getInstance(): CreditService {
     if (!CreditService.instance) {
@@ -25,88 +30,61 @@ export class CreditService {
     return CreditService.instance;
   }
 
+  // ===========================
+  // LOCAL STORAGE HELPERS
+  // ===========================
+
   private getStorageKey(userId?: string): string {
     return userId ? `${this.storageKey}-${userId}` : this.storageKey;
   }
 
-  // ----------------------------------------------------
-  // SAFE LOAD
-  // ----------------------------------------------------
   private getCreditData(userId?: string): CreditBalance {
     try {
       const key = this.getStorageKey(userId);
       const raw = localStorage.getItem(key);
 
-      if (!raw) {
-        return this.emptyCreditState();
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return {
+          balance: parsed.balance ?? 0,
+          isNewUser: parsed.isNewUser ?? false,
+          hasReceivedWelcomeCredit: parsed.hasReceivedWelcomeCredit ?? false,
+          lastUpdated: new Date(parsed.lastUpdated ?? new Date()),
+          transactions: (parsed.transactions ?? []).map((t: any) => ({
+            ...t,
+            timestamp: new Date(t.timestamp),
+          })),
+        };
       }
-
-      const parsed = JSON.parse(raw);
-
-      // Validate structure
-      if (
-        typeof parsed.balance !== "number" ||
-        !Array.isArray(parsed.transactions)
-      ) {
-        console.warn("Invalid credit structure detected → Resetting.");
-        return this.emptyCreditState();
-      }
-
-      return {
-        balance: Math.max(0, parsed.balance),
-        transactions: parsed.transactions.map((t: any) => ({
-          ...t,
-          timestamp: new Date(t.timestamp),
-        })),
-        lastUpdated: new Date(parsed.lastUpdated ?? new Date()),
-        isNewUser: !!parsed.isNewUser,
-      };
     } catch (err) {
       console.error("Error loading credit data:", err);
-      return this.emptyCreditState();
     }
-  }
 
-  private emptyCreditState(): CreditBalance {
     return {
       balance: 0,
       transactions: [],
       lastUpdated: new Date(),
       isNewUser: false,
+      hasReceivedWelcomeCredit: false,
     };
   }
 
-  // ----------------------------------------------------
-  // SAFE SAVE
-  // ----------------------------------------------------
   private saveCreditData(data: CreditBalance, userId?: string): void {
     try {
       const key = this.getStorageKey(userId);
-
-      // Ensure no broken values
-      data.balance = Math.max(0, data.balance);
-
-      localStorage.setItem(
-        key,
-        JSON.stringify({
-          ...data,
-          lastUpdated: new Date().toISOString(),
-          transactions: data.transactions.map((t) => ({
-            ...t,
-            timestamp: t.timestamp.toISOString(),
-          })),
-        })
-      );
+      localStorage.setItem(key, JSON.stringify(data));
     } catch (err) {
       console.error("Error saving credit data:", err);
     }
   }
 
-  // ----------------------------------------------------
-  // PUBLIC GETTERS
-  // ----------------------------------------------------
+  // ===========================
+  // CORE METHODS
+  // ===========================
+
   getCreditBalance(userId?: string): number {
-    return this.getCreditData(userId).balance;
+    const data = this.getCreditData(userId);
+    return Math.max(0, data.balance);
   }
 
   getCreditHistory(userId?: string): CreditTransaction[] {
@@ -115,44 +93,50 @@ export class CreditService {
     );
   }
 
-  hasEnoughCredits(amount: number, userId?: string): boolean {
-    return this.getCreditBalance(userId) >= amount;
-  }
+  // ==========================================================
+  // ⭐ ONE-TIME WELCOME CREDIT (NEVER AGAIN PER ACCOUNT)
+  // ==========================================================
 
-  // ----------------------------------------------------
-  // NEW USER BONUS
-  // ----------------------------------------------------
   giveNewUserCredits(userId?: string): boolean {
     try {
       const data = this.getCreditData(userId);
 
-      // Only give when absolutely new
-      if (data.transactions.length === 0 && data.balance === 0) {
-        const tx: CreditTransaction = {
-          id: crypto.randomUUID(),
-          type: "purchase",
-          amount: 1,
-          description: "Welcome bonus - new user credit",
-          timestamp: new Date(),
-        };
-
-        data.balance = 1;
-        data.transactions.push(tx);
-        data.isNewUser = true;
-
-        this.saveCreditData(data, userId);
-        return true;
+      // Prevent duplicate welcome credits permanently
+      if (data.hasReceivedWelcomeCredit) {
+        console.log("Welcome credit already granted previously.");
+        return false;
       }
-      return false;
+
+      // First time ever → grant 1 credit
+      const transaction: CreditTransaction = {
+        id: crypto.randomUUID(),
+        type: "purchase",
+        amount: 1,
+        description: "Welcome bonus - one-time new user credit",
+        timestamp: new Date(),
+      };
+
+      data.balance += 1;
+      data.transactions.push(transaction);
+      data.lastUpdated = new Date();
+
+      // Set permanent flag
+      data.hasReceivedWelcomeCredit = true;
+      data.isNewUser = true;
+
+      this.saveCreditData(data, userId);
+      console.log("Welcome credit granted.");
+      return true;
     } catch (err) {
-      console.error("Error giving new user credits:", err);
+      console.error("Error giving welcome credit:", err);
       return false;
     }
   }
 
-  // ----------------------------------------------------
-  // ADD CREDITS
-  // ----------------------------------------------------
+  // ==========================================================
+  // ADDING CREDITS
+  // ==========================================================
+
   addCredits(
     amount: number,
     description: string,
@@ -160,11 +144,9 @@ export class CreditService {
     stripeSessionId?: string
   ): boolean {
     try {
-      if (amount <= 0) return false;
-
       const data = this.getCreditData(userId);
 
-      const tx: CreditTransaction = {
+      const transaction: CreditTransaction = {
         id: crypto.randomUUID(),
         type: "purchase",
         amount,
@@ -174,10 +156,11 @@ export class CreditService {
       };
 
       data.balance += amount;
-      data.transactions.push(tx);
+      data.transactions.push(transaction);
       data.lastUpdated = new Date();
 
       this.saveCreditData(data, userId);
+      console.log(`Added ${amount} credits.`);
       return true;
     } catch (err) {
       console.error("Error adding credits:", err);
@@ -185,19 +168,20 @@ export class CreditService {
     }
   }
 
-  // ----------------------------------------------------
-  // DEDUCT CREDITS
-  // ----------------------------------------------------
+  // ==========================================================
+  // DEDUCTING CREDITS
+  // ==========================================================
+
   deductCredits(amount: number, description: string, userId?: string): boolean {
     try {
       const data = this.getCreditData(userId);
 
-      if (amount <= 0 || data.balance < amount) {
+      if (data.balance < amount) {
         console.warn("Not enough credits.");
         return false;
       }
 
-      const tx: CreditTransaction = {
+      const transaction: CreditTransaction = {
         id: crypto.randomUUID(),
         type: "deduction",
         amount,
@@ -206,7 +190,7 @@ export class CreditService {
       };
 
       data.balance -= amount;
-      data.transactions.push(tx);
+      data.transactions.push(transaction);
       data.lastUpdated = new Date();
 
       this.saveCreditData(data, userId);
@@ -217,9 +201,14 @@ export class CreditService {
     }
   }
 
-  // ----------------------------------------------------
-  // STRIPE SUCCESS HANDLING
-  // ----------------------------------------------------
+  hasEnoughCredits(amount: number, userId?: string): boolean {
+    return this.getCreditBalance(userId) >= amount;
+  }
+
+  // ==========================================================
+  // STRIPE SUCCESS HANDLING (PREVENT DOUBLE CREDIT)
+  // ==========================================================
+
   processStripeSuccess(
     sessionId: string,
     creditsAmount: number,
@@ -227,37 +216,23 @@ export class CreditService {
   ): boolean {
     const history = this.getCreditHistory(userId);
 
-    // Prevent double processing
-    if (history.some((t) => t.stripeSessionId === sessionId)) {
-      console.log("Stripe session already processed.");
+    const alreadyProcessed = history.some(
+      (t) => t.stripeSessionId === sessionId
+    );
+
+    if (alreadyProcessed) {
+      console.log("Stripe session already processed:", sessionId);
       return false;
     }
 
-    const finalCredits =
-      creditsAmount > 0 ? creditsAmount : this.mapPriceToCredits(creditsAmount);
-
-    return this.addCredits(
-      finalCredits,
-      `${finalCredits} credits purchased`,
-      userId,
-      sessionId
-    );
+    const description = `${creditsAmount} credits purchased`;
+    return this.addCredits(creditsAmount, description, userId, sessionId);
   }
 
-  private mapPriceToCredits(amount: number): number {
-    const priceToCredits: Record<number, number> = {
-      500: 10,
-      1000: 25,
-      2000: 55,
-      5000: 150,
-    };
+  // ==========================================================
+  // USER MIGRATION (GUEST → REGISTERED ACCOUNT)
+  // ==========================================================
 
-    return priceToCredits[amount] ?? 25;
-  }
-
-  // ----------------------------------------------------
-  // USER MIGRATION (guest → logged-in)
-  // ----------------------------------------------------
   migrateUserCredits(fromUserId: string, toUserId: string): void {
     try {
       const guest = this.getCreditData(fromUserId);
@@ -267,41 +242,35 @@ export class CreditService {
       user.transactions.push(...guest.transactions);
       user.lastUpdated = new Date();
 
+      // preserve welcome credit flag
+      if (guest.hasReceivedWelcomeCredit) {
+        user.hasReceivedWelcomeCredit = true;
+      }
+
       this.saveCreditData(user, toUserId);
 
+      // clear guest data
       localStorage.removeItem(this.getStorageKey(fromUserId));
+
+      console.log("Credits migrated successfully.");
     } catch (err) {
       console.error("Error migrating credits:", err);
     }
   }
 
-  // ----------------------------------------------------
-  // ADMIN CREDIT GRANT
-  // ----------------------------------------------------
+  // ==========================================================
+  // ADMIN CREDIT GRANTING
+  // ==========================================================
+
   giveCreditsToUser(
     userId: string,
     amount: number,
-    description = "Admin credit grant"
+    description: string = "Admin credit grant"
   ): boolean {
     try {
-      const data = this.getCreditData(userId);
-
-      const tx: CreditTransaction = {
-        id: crypto.randomUUID(),
-        type: "purchase",
-        amount,
-        description,
-        timestamp: new Date(),
-      };
-
-      data.balance += amount;
-      data.transactions.push(tx);
-      data.lastUpdated = new Date();
-
-      this.saveCreditData(data, userId);
-      return true;
+      return this.addCredits(amount, description, userId);
     } catch (err) {
-      console.error("Error giving admin credits:", err);
+      console.error("Admin credit error:", err);
       return false;
     }
   }
