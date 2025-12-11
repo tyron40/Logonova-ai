@@ -63,15 +63,15 @@ Deno.serve(async (req: Request) => {
     }
 
     // Check user has credits
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("credits")
-      .eq("id", user.id)
+    const { data: apiKey, error: apiKeyError } = await supabase
+      .from("user_api_keys")
+      .select("credit_balance")
+      .eq("user_id", user.id)
       .maybeSingle();
 
-    if (profileError) {
+    if (apiKeyError) {
       return new Response(
-        JSON.stringify({ error: "Failed to fetch user profile" }),
+        JSON.stringify({ error: "Failed to fetch user credits" }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -79,9 +79,11 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    if (!profile || profile.credits < 1) {
+    const currentCredits = apiKey?.credit_balance ?? 0;
+
+    if (currentCredits < 1) {
       return new Response(
-        JSON.stringify({ error: "Insufficient credits" }),
+        JSON.stringify({ error: "Insufficient credits. Please purchase more credits to continue." }),
         {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -156,18 +158,27 @@ Deno.serve(async (req: Request) => {
     }
 
     // Deduct credit from user
+    const newBalance = currentCredits - 1;
     const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ credits: profile.credits - 1 })
-      .eq("id", user.id);
+      .from("user_api_keys")
+      .update({ credit_balance: newBalance })
+      .eq("user_id", user.id);
 
     if (updateError) {
       console.error("Failed to deduct credit:", updateError);
       // Still return the image, but log the error
     }
 
+    // Log the transaction
+    await supabase.from("credit_transactions").insert({
+      user_id: user.id,
+      transaction_type: "deduction",
+      credits_amount: -1,
+      description: `Logo generation for ${requestData.companyName}`,
+    });
+
     return new Response(
-      JSON.stringify({ imageUrl, creditsRemaining: profile.credits - 1 }),
+      JSON.stringify({ imageUrl, creditsRemaining: newBalance }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
