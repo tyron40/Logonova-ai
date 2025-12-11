@@ -277,118 +277,36 @@ Return ONLY the enhanced description without commentary.
     const colorStrategy = this.getColorStrategy(colorScheme);
 
     const symbolGuidance = industrySymbols.length > 0
-      ? `Consider incorporating one of these symbolic elements: ${industrySymbols.slice(0, 3).join(", ")}`
-      : "Use industry-appropriate visual symbolism";
+      ? industrySymbols.slice(0, 2).join(", ")
+      : "industry symbol";
 
     return `
-==================================================
-MASTER LOGO DESIGN BRIEF
-==================================================
+Professional logo for "${companyName}" | ${industry} | ${description}
 
-CLIENT: "${companyName}"
-INDUSTRY: ${industry}
-DESCRIPTION: ${description}
-BRAND VALUES: ${keywords.join(", ") || "professional, memorable, distinctive"}
+STYLE: ${styleDirection}
+COLORS: ${colorStrategy}
+SYMBOLS: ${symbolGuidance}
+BRAND: ${keywords.slice(0, 3).join(", ") || "professional"}
 
-==================================================
-DESIGN OBJECTIVE
-==================================================
-Create ONE (1) professional, production-ready logo for "${companyName}".
+CRITICAL RULES - NON-NEGOTIABLE:
 
-STYLE DIRECTION:
-${styleDirection}
+1. TEXT SPELLING: Display EXACTLY "${companyName}" with perfect spelling. NO typos, NO abbreviations, NO initials only, NO placeholder text, NO other words allowed.
 
-COLOR STRATEGY:
-${colorStrategy}
+2. SINGLE LOGO ONLY: Output exactly ONE centered logo. NO multiple versions, NO thumbnails, NO grids, NO alternates, NO variations.
 
-SYMBOLIC ELEMENTS:
-${symbolGuidance}
+3. CLEAN COMPOSITION: Vector-style design on plain/gradient background. NO mockups, NO business cards, NO stationery, NO products, NO packaging, NO t-shirts, NO signage, NO physical objects.
 
-==================================================
-ABSOLUTE STRUCTURAL REQUIREMENTS
-==================================================
-✓ OUTPUT: Exactly ONE centered logo on a plain background
-✓ FORMAT: Clean vector-style design with crisp lines and smooth shapes
-✓ COMPOSITION: Single unified logo mark (not a layout, poster, or multi-panel design)
-✓ SPACING: Generous clean space surrounding the logo on all sides
-✓ CANVAS: Solid color or subtle gradient background only (never textured, never photographic)
+4. NO SCENES: NO real-world environments, NO rooms, NO desks, NO paper textures, NO photographs, NO people, NO hands.
 
-✗ FORBIDDEN: Multiple logo versions, thumbnail grids, alternate layouts, icon sets, brand guideline sheets
+5. NO EXTRAS: NO separate icons, NO borders, NO frames, NO QR codes, NO watermarks, NO measurement guides.
 
-==================================================
-TEXT SPELLING RULES (CRITICAL)
-==================================================
-✓ REQUIRED TEXT: "${companyName}"
-✓ SPELLING: Must be EXACTLY "${companyName}" with perfect accuracy
-✓ PLACEMENT: Text must be clearly integrated into the logo design
-✓ TYPOGRAPHY: Professional, readable, and appropriately scaled
-✓ NO EXCEPTIONS: Zero tolerance for typos, abbreviations, or alternate spellings
+6. PROFESSIONAL ONLY: Clean, scalable, production-ready logo suitable for all business applications.
 
-✗ DO NOT USE: Placeholder text, lorem ipsum, initials only, random letters
-✗ DO NOT ADD: Taglines, generic words, descriptive phrases, extra text
-✗ ONLY ALLOWED TEXT: "${companyName}"
+TEXT TO RENDER: "${companyName}"
+SPELL IT: "${companyName}"
+DISPLAY: "${companyName}"
 
-==================================================
-COMPREHENSIVE NEGATIVE PROMPT
-==================================================
-ABSOLUTELY DO NOT INCLUDE:
-
-❌ MOCKUPS & PRESENTATIONS:
-- Business cards, stationery, letterheads, envelopes
-- T-shirts, apparel, merchandise, products
-- Signage, billboards, storefront displays
-- Packaging, boxes, bags, labels, stickers
-- Posters, flyers, brochures, marketing materials
-- Paper textures, notebook pages, desk surfaces
-
-❌ DIGITAL MOCKUPS:
-- Website screenshots, app interfaces, UI screens
-- Device frames (phones, tablets, computers)
-- Social media posts, profile pictures
-- Digital banners, web ads
-
-❌ MULTIPLE VERSIONS:
-- Logo variations, alternates, size options
-- Icon sets, symbol libraries, element collections
-- Grid layouts, thumbnail rows, comparison sheets
-- Before/after views, process stages
-
-❌ PHOTOGRAPHIC ELEMENTS:
-- Real-world scenes, environments, rooms
-- Physical objects, props, surfaces
-- People, hands, bodies, faces
-- Cameras, equipment, tools
-- Shadows from external light sources
-
-❌ EXTRANEOUS ELEMENTS:
-- Decorative borders, frames, containers
-- Separate icons floating around the logo
-- QR codes, barcodes, watermarks
-- Copyright symbols, legal text
-- Measurement guides, rulers, crop marks
-
-❌ TEXT VIOLATIONS:
-- Misspelled company name
-- Abbreviated or shortened versions
-- Made-up words or placeholder text
-- Additional descriptive words
-- Random letters or symbols
-
-==================================================
-FINAL DELIVERABLE SPECIFICATION
-==================================================
-Produce a single, centered, professional logo for "${companyName}" that:
-
-1. Contains ONLY the logo itself on a clean background
-2. Displays "${companyName}" with perfect spelling and professional typography
-3. Uses ${colorStrategy.toLowerCase()}
-4. Embodies ${styleDirection.toLowerCase()}
-5. Incorporates relevant visual symbolism for the ${industry} industry
-6. Works perfectly at any scale (from favicon to billboard)
-7. Is immediately recognizable and memorable
-8. Appears polished, balanced, and ready for commercial use
-
-This is a real client project. Deliver one perfect logo.
+Deliver one perfect centered logo with the exact text "${companyName}" integrated professionally.
 `.trim();
   }
 }
