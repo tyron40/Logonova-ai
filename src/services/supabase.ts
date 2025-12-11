@@ -46,8 +46,16 @@ function validateEnvironment(): { isValid: boolean; errors: string[] } {
 const envValidation = validateEnvironment();
 
 // Only create client if we have the required environment variables
-export const supabase = envValidation.isValid ? 
-  createClient(supabaseUrl, supabaseAnonKey) : null;
+export const supabase = envValidation.isValid ?
+  createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storageKey: 'logoai-auth-token',
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    },
+  }) : null;
 
 if (!envValidation.isValid) {
   console.warn('⚠️ Supabase not configured - authentication features will be disabled');

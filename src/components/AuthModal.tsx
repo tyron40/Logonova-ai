@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Mail, Lock, User, LogIn, UserPlus, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabaseService } from '../services/supabase';
+import { creditService } from '../services/creditService';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -125,10 +126,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-full items-center justify-center p-4">
+      <div className="flex min-h-full items-center justify-center p-4 sm:p-6">
         <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={onClose} />
-        
-        <div className="relative bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6 border border-gray-700">
+
+        <div className="relative bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6 sm:p-8 border border-gray-700 max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
@@ -188,9 +189,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
+                    className="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 mobile-input"
                     placeholder="Choose a username"
                     disabled={isLoading}
+                    autoComplete="username"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck="false"
                   />
                 </div>
                 <p className="mt-1 text-xs text-gray-400">
@@ -209,9 +214,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
+                  className="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 mobile-input"
                   placeholder="your@email.com"
                   disabled={isLoading}
+                  autoComplete="email"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck="false"
+                  inputMode="email"
                 />
               </div>
             </div>
@@ -226,9 +236,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
+                  className="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 mobile-input"
                   placeholder="Enter your password"
                   disabled={isLoading}
+                  autoComplete={isSignUp ? "new-password" : "current-password"}
                 />
               </div>
               {isSignUp && (
@@ -255,7 +266,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed mobile-button touch-manipulation"
             >
               {isLoading ? (
                 <>
@@ -277,7 +288,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
               {isSignUp ? 'Already have an account?' : "Don't have an account?"}
               <button
                 onClick={toggleMode}
-                className="ml-1 text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                className="ml-1 text-blue-400 hover:text-blue-300 font-medium transition-colors touch-manipulation"
                 disabled={isLoading}
               >
                 {isSignUp ? 'Sign In' : 'Sign Up'}
@@ -289,7 +300,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
           <div className="mt-4 pt-4 border-t border-gray-700">
             <button
               onClick={onClose}
-              className="w-full text-center text-sm text-gray-400 hover:text-gray-300 transition-colors"
+              className="w-full text-center text-sm text-gray-400 hover:text-gray-300 transition-colors mobile-button touch-manipulation"
               disabled={isLoading}
             >
               Continue as Guest
