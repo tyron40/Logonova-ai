@@ -140,6 +140,7 @@ function App() {
       'c035587f-99c4-49b4-aeb5-8a48771828eb', 
       100, 
       'Admin credit grant for robertstyron40@gmail.com'
+    );
   }, []);
 
   const loadLocalLogos = (userId?: string) => {
