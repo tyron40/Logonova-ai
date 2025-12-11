@@ -60,6 +60,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
         
         // Check if email confirmation is disabled
         if (result.data.user && !result.data.user.email_confirmed_at) {
+          // Give new user credits only on successful account creation
+          creditService.giveNewUserCredits(result.data.user.id);
           setSuccess('Account created successfully! You can now sign in.');
         } else {
           setSuccess('Account created successfully! Please check your email to verify your account.');

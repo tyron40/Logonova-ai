@@ -103,7 +103,7 @@ export class CreditService {
 
       // Prevent duplicate welcome credits permanently
       if (data.hasReceivedWelcomeCredit) {
-        console.log("Welcome credit already granted previously.");
+        console.log("Welcome credit already granted to this user.");
         return false;
       }
 
@@ -122,10 +122,9 @@ export class CreditService {
 
       // Set permanent flag
       data.hasReceivedWelcomeCredit = true;
-      data.isNewUser = true;
 
       this.saveCreditData(data, userId);
-      console.log("Welcome credit granted.");
+      console.log("1 welcome credit granted to new user.");
       return true;
     } catch (err) {
       console.error("Error giving welcome credit:", err);
