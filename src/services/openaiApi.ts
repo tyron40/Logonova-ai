@@ -9,6 +9,7 @@ export interface LogoGenerationRequest {
 
 export class OpenAILogoService {
   private static instance: OpenAILogoService;
+  private maxRetries = 2;
 
   static getInstance(): OpenAILogoService {
     if (!OpenAILogoService.instance) {
@@ -30,40 +31,88 @@ export class OpenAILogoService {
 
   async generateLogo(request: LogoGenerationRequest): Promise<string> {
     if (!this.hasValidApiKey()) {
-      throw new Error("OpenAI API key is required.");
+      throw new Error("OpenAI API key is required. Please add it in settings.");
     }
 
     const apiKey = this.getApiKey()!;
-    const prompt = this.buildLogoPrompt(request);
+    let lastError: Error | null = null;
 
-    try {
-      const response = await fetch("https://api.openai.com/v1/images/generations", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "dall-e-3",
-          prompt,
-          size: "1024x1024",
-          quality: "hd",
-          n: 1,
-          response_format: "url",
-        }),
-      });
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      try {
+        const prompt = this.buildLogoPrompt(request);
 
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: { message: "Unknown error" } }));
-        throw new Error(error.error?.message ?? "Image generation failed.");
+        console.log(`Logo generation attempt ${attempt + 1}/${this.maxRetries + 1}`);
+
+        const response = await fetch("https://api.openai.com/v1/images/generations", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "dall-e-3",
+            prompt,
+            size: "1024x1024",
+            quality: "hd",
+            n: 1,
+            response_format: "url",
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({
+            error: { message: `HTTP ${response.status}: ${response.statusText}` }
+          }));
+
+          const errorMessage = error.error?.message || "Unknown API error";
+
+          if (response.status === 429) {
+            throw new Error("Rate limit exceeded. Please wait a moment and try again.");
+          } else if (response.status === 401) {
+            throw new Error("Invalid API key. Please check your OpenAI API key.");
+          } else if (response.status === 402 || errorMessage.includes("insufficient_quota")) {
+            throw new Error("OpenAI API quota exceeded. Please check your billing.");
+          } else if (response.status === 400 && errorMessage.includes("content_policy")) {
+            throw new Error("Content policy violation. Please adjust your description.");
+          }
+
+          throw new Error(`OpenAI API Error: ${errorMessage}`);
+        }
+
+        const data = await response.json();
+
+        if (!data.data || !data.data[0] || !data.data[0].url) {
+          throw new Error("Invalid API response: No image URL returned");
+        }
+
+        const imageUrl = data.data[0].url;
+
+        if (!imageUrl.startsWith("http")) {
+          throw new Error("Invalid image URL received from API");
+        }
+
+        console.log("Logo generated successfully");
+        return imageUrl;
+
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error("Unknown error occurred");
+        console.error(`Attempt ${attempt + 1} failed:`, lastError.message);
+
+        if (
+          lastError.message.includes("quota") ||
+          lastError.message.includes("Invalid API key") ||
+          lastError.message.includes("content_policy")
+        ) {
+          throw lastError;
+        }
+
+        if (attempt < this.maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+        }
       }
-
-      const data = await response.json();
-      return data.data?.[0]?.url ?? "";
-    } catch (err) {
-      console.error("Logo Generation Error:", err);
-      throw new Error("Failed to generate logo. Try again.");
     }
+
+    throw lastError || new Error("Failed to generate logo after multiple attempts");
   }
 
   async generateBusinessKeywords(companyName: string, description: string): Promise<string> {
@@ -72,203 +121,274 @@ export class OpenAILogoService {
     }
 
     const apiKey = this.getApiKey()!;
-    const prompt = `
-      Improve this business description for stronger branding and logo creation:
-      Business Name: "${companyName}"
-      Original Description: "${description}"
 
-      Return ONLY the improved description. Do not add commentary.
-    `;
+    try {
+      const prompt = `
+Enhance this business description for professional branding and logo design:
+Business Name: "${companyName}"
+Current Description: "${description}"
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: "You refine business descriptions specifically to guide professional logo design."
-          },
-          { role: "user", content: prompt },
-        ],
-        max_tokens: 200,
-      }),
-    });
+Provide an improved, professional description that highlights key brand attributes, industry position, and visual identity concepts. Keep it concise and focused.
+Return ONLY the enhanced description without commentary.
+      `.trim();
 
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content?.trim() ?? "";
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: "You are a professional brand strategist specializing in creating compelling business descriptions for logo design and brand identity development."
+            },
+            { role: "user", content: prompt },
+          ],
+          max_tokens: 250,
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("Keyword generation failed, using original description");
+        return description;
+      }
+
+      const data = await response.json();
+      const enhanced = data.choices?.[0]?.message?.content?.trim();
+
+      return enhanced || description;
+    } catch (error) {
+      console.error("Error generating keywords:", error);
+      return description;
+    }
   }
 
-  // ---------------------------------------------------------
-  // SYMBOLIC INTELLIGENCE HELPERS
-  // ---------------------------------------------------------
+  private getIndustryImagery(description: string): string[] {
+    const desc = description.toLowerCase();
+    const imagery: string[] = [];
 
-  private getNightlifeImagery(raw: string): string[] {
-    const desc = raw.toLowerCase();
-    const list: string[] = [];
-
-    if (desc.includes("strip") || desc.includes("gentlemen")) {
-      list.push(
-        "tasteful abstract dancer silhouette",
-        "neon nightlife badge",
-        "subtle spotlight accents"
+    if (desc.includes("strip") || desc.includes("gentlemen") || desc.includes("exotic")) {
+      imagery.push(
+        "elegant silhouette figure",
+        "sophisticated neon accent",
+        "upscale nightlife symbol",
+        "stylized stage spotlight"
       );
     }
 
-    if (desc.includes("nightclub") || desc.includes("club") || desc.includes("bar")) {
-      list.push("neon cocktail icon", "vip star emblem");
+    if (desc.includes("nightclub") || desc.includes("club") || desc.includes("lounge")) {
+      imagery.push("neon cocktail glass", "VIP star badge", "musical note accent");
     }
 
-    return list;
-  }
-
-  private getIndustrySpecificImagery(raw: string): string[] {
-    const desc = raw.toLowerCase();
-    const list: string[] = [];
-
-    if (desc.includes("burger") || desc.includes("restaurant") || desc.includes("food")) {
-      list.push("single stylized burger icon", "simple culinary emblem");
+    if (desc.includes("bar") || desc.includes("pub") || desc.includes("brewery")) {
+      imagery.push("craft beer glass", "bottle silhouette", "bar counter element");
     }
 
-    if (desc.includes("candy") || desc.includes("sweet")) {
-      list.push("single lollipop swirl", "minimal candy icon");
+    if (desc.includes("burger") || desc.includes("restaurant") || desc.includes("diner")) {
+      imagery.push("burger stack icon", "chef hat symbol", "fork and knife cross");
+    }
+
+    if (desc.includes("candy") || desc.includes("sweet") || desc.includes("dessert")) {
+      imagery.push("lollipop swirl", "candy wrapper twist", "sweet confection shape");
     }
 
     if (desc.includes("skate") || desc.includes("skateboard")) {
-      list.push("single skateboard deck symbol", "simple wheel-and-truck emblem");
+      imagery.push("skateboard deck profile", "wheel silhouette", "ramp curve");
     }
 
-    if (desc.includes("tech") || desc.includes("software") || desc.includes("app")) {
-      list.push("geometric digital core symbol", "circuit-inspired emblem");
+    if (desc.includes("tech") || desc.includes("software") || desc.includes("app") || desc.includes("digital")) {
+      imagery.push("circuit path element", "pixel grid", "digital wave form");
     }
 
-    if (desc.includes("fitness") || desc.includes("gym") || desc.includes("training")) {
-      list.push("strong athletic silhouette", "dynamic motion lines");
+    if (desc.includes("fitness") || desc.includes("gym") || desc.includes("training") || desc.includes("workout")) {
+      imagery.push("athletic figure", "dumbbell icon", "motion streak");
     }
 
-    if (desc.includes("beauty") || desc.includes("spa") || desc.includes("salon")) {
-      list.push("elegant floral curves", "soft feminine line-art");
+    if (desc.includes("beauty") || desc.includes("spa") || desc.includes("salon") || desc.includes("cosmetic")) {
+      imagery.push("elegant leaf curve", "flower petal", "mirror reflection");
     }
 
-    if (desc.includes("finance") || desc.includes("bank") || desc.includes("investment")) {
-      list.push("upward growth arrow", "shield of trust emblem");
+    if (desc.includes("finance") || desc.includes("bank") || desc.includes("investment") || desc.includes("wealth")) {
+      imagery.push("upward arrow", "shield emblem", "coin stack");
     }
 
-    return list;
+    if (desc.includes("law") || desc.includes("legal") || desc.includes("attorney")) {
+      imagery.push("scales of justice", "pillared column", "legal document scroll");
+    }
+
+    if (desc.includes("medical") || desc.includes("health") || desc.includes("clinic") || desc.includes("doctor")) {
+      imagery.push("medical cross", "heartbeat line", "wellness symbol");
+    }
+
+    if (desc.includes("real estate") || desc.includes("property") || desc.includes("housing")) {
+      imagery.push("house outline", "building skyline", "key symbol");
+    }
+
+    if (desc.includes("education") || desc.includes("school") || desc.includes("learning")) {
+      imagery.push("graduation cap", "open book", "lightbulb of knowledge");
+    }
+
+    return imagery;
   }
 
-  private getStyleModifiers(style: string): string {
-    const map: Record<string, string> = {
-      modern: "modern minimalist with clean geometry and strong visual hierarchy",
-      classic: "classic timeless with balanced symmetry and refined typography",
-      bold: "bold impactful with heavy strokes and high contrast",
-      creative: "creative expressive with distinctive, imaginative shapes",
-      minimal: "ultra-minimal with maximum simplicity and negative space",
+  private getStyleDirection(style: string): string {
+    const styleMap: Record<string, string> = {
+      modern: "ultra-modern minimalist aesthetic with clean geometric precision, sharp edges, and strong visual hierarchy",
+      classic: "timeless classic design with traditional elegance, balanced symmetry, and refined sophistication",
+      bold: "powerful bold styling with heavy weight strokes, high contrast, and commanding presence",
+      creative: "uniquely creative expression with distinctive artistic elements, imaginative shapes, and memorable character",
+      minimal: "pure minimal design with maximum simplicity, essential elements only, and generous negative space",
+      tech: "cutting-edge technological feel with digital precision, futuristic elements, and innovative geometry",
+      luxury: "premium luxury aesthetic with sophisticated refinement, elegant details, and exclusive appeal",
+      organic: "natural organic flow with smooth curves, earth-inspired forms, and harmonious balance",
+      playful: "fun playful character with friendly shapes, approachable design, and cheerful energy",
+      elegant: "graceful elegant styling with refined curves, sophisticated balance, and timeless beauty"
     };
-    return map[style] ?? "professional, balanced, brand-ready styling";
+
+    return styleMap[style] || "professional balanced design with clean commercial appeal and brand-ready aesthetics";
   }
 
-  private getColorPalette(color: string): string {
-    const map: Record<string, string> = {
-      blue: "trustworthy, professional blue tones with crisp contrast",
-      green: "natural and financial greens representing growth and stability",
-      purple: "creative purple and violet tones suggesting innovation and premium feel",
-      orange: "warm energetic orange hues conveying friendliness and enthusiasm",
-      red: "bold red tones emphasizing energy and power",
-      black: "high-contrast monochrome palette with black, white, and gray",
+  private getColorStrategy(colorScheme: string): string {
+    const colorMap: Record<string, string> = {
+      blue: "professional blue palette with deep navy, bright azure, and crisp whites for trust and stability",
+      green: "natural green spectrum with forest greens, emerald tones, and fresh accents for growth and vitality",
+      purple: "creative purple range with royal violets, deep plum, and bright accents for innovation and luxury",
+      orange: "energetic orange palette with warm amber, vibrant tangerine, and complementary tones for enthusiasm",
+      red: "powerful red spectrum with deep crimson, bold scarlet, and strong accents for passion and energy",
+      black: "sophisticated monochrome with rich blacks, refined grays, and pure whites for timeless elegance",
+      pink: "modern pink palette with soft blush, bold magenta, and complementary tones for contemporary appeal",
+      yellow: "bright yellow spectrum with golden tones, sunny accents, and balanced contrast for optimism",
+      teal: "fresh teal palette with ocean blues, turquoise accents, and clean contrast for modern sophistication",
+      brown: "earthy brown range with rich chocolate, warm tan, and natural tones for authenticity and warmth"
     };
-    return map[color] ?? "a clean, modern, brand-appropriate color palette";
-  }
 
-  // ---------------------------------------------------------
-  // MASTER PROMPT (WITH STRONG NEGATIVE LOGIC)
-  // ---------------------------------------------------------
+    return colorMap[colorScheme] || "carefully selected brand colors with professional contrast and visual harmony";
+  }
 
   private buildLogoPrompt(req: LogoGenerationRequest): string {
     const { companyName, description, industry, style, colorScheme, keywords } = req;
 
-    const industryImagery = this.getIndustrySpecificImagery(description);
-    const nightlifeImagery = this.getNightlifeImagery(description);
-    const styleInfo = this.getStyleModifiers(style);
-    const colors = this.getColorPalette(colorScheme);
+    const industrySymbols = this.getIndustryImagery(description);
+    const styleDirection = this.getStyleDirection(style);
+    const colorStrategy = this.getColorStrategy(colorScheme);
+
+    const symbolGuidance = industrySymbols.length > 0
+      ? `Consider incorporating one of these symbolic elements: ${industrySymbols.slice(0, 3).join(", ")}`
+      : "Use industry-appropriate visual symbolism";
 
     return `
-You are a world-class brand identity designer creating a single logo for a real client.
+==================================================
+MASTER LOGO DESIGN BRIEF
+==================================================
 
-==============================
-BUSINESS CONTEXT
-==============================
-Business Name: "${companyName}"
-Industry: ${industry}
-Description: ${description}
-Brand Attributes: ${keywords.join(", ") || "clear, memorable, professional"}
+CLIENT: "${companyName}"
+INDUSTRY: ${industry}
+DESCRIPTION: ${description}
+BRAND VALUES: ${keywords.join(", ") || "professional, memorable, distinctive"}
 
-==============================
-DESIGN GOAL
-==============================
-Create ONE (1) finished, production-ready logo for "${companyName}" that:
-• looks clean, modern, and professional,
-• works as a standalone mark on websites, apps, and merchandise,
-• feels instantly recognizable and memorable.
+==================================================
+DESIGN OBJECTIVE
+==================================================
+Create ONE (1) professional, production-ready logo for "${companyName}".
 
-Style: ${styleInfo}
-Color Palette: ${colors}
+STYLE DIRECTION:
+${styleDirection}
 
-Suggested symbolic imagery (optional but coherent):
-• ${industryImagery.join(", ") || "industry-appropriate simple symbol"}
-• ${nightlifeImagery.join(", ") || "no nightlife symbol if not relevant"}
+COLOR STRATEGY:
+${colorStrategy}
 
-==============================
-HARD STRUCTURE RULES (NON-NEGOTIABLE)
-==============================
-• The image MUST contain EXACTLY ONE logo in the center of the canvas.
-• The logo must be a flat, vector-style design with crisp lines and smooth curves.
-• The composition must be a SINGLE compact logo unit, not a layout or poster.
-• The canvas must NOT be split into panels, halves, or sections.
-• Do NOT create rows of icons, extra symbols, or brand sheets.
-• Do NOT place multiple versions of the logo anywhere in the image.
-• Keep generous clean space around the logo; no cluttered edges.
+SYMBOLIC ELEMENTS:
+${symbolGuidance}
 
-==============================
-TEXT RULES (NON-NEGOTIABLE)
-==============================
-• The visible text MUST be exactly: "${companyName}".
-• Spell "${companyName}" perfectly — no typos, no alternate spellings.
-• Do NOT use initials or monograms instead of the full name.
-• Do NOT add taglines or generic words like "professional", "brand", "studio", etc.
-• No placeholder text, lorem ipsum, or random characters.
-• There must be NO other words or numbers besides "${companyName}".
+==================================================
+ABSOLUTE STRUCTURAL REQUIREMENTS
+==================================================
+✓ OUTPUT: Exactly ONE centered logo on a plain background
+✓ FORMAT: Clean vector-style design with crisp lines and smooth shapes
+✓ COMPOSITION: Single unified logo mark (not a layout, poster, or multi-panel design)
+✓ SPACING: Generous clean space surrounding the logo on all sides
+✓ CANVAS: Solid color or subtle gradient background only (never textured, never photographic)
 
-TEXT TO RENDER (STRICT):
-"${companyName}"
+✗ FORBIDDEN: Multiple logo versions, thumbnail grids, alternate layouts, icon sets, brand guideline sheets
 
-==============================
-FORBIDDEN ELEMENTS (NEGATIVE PROMPT)
-==============================
-Do NOT include any of the following:
-• mockups, stationery, business cards, posters, signage, billboards
-• t-shirts, hats, packaging, boxes, bags, stickers, labels
-• photos of paper, notebooks, or any physical object
-• UI screens, app windows, device frames, buttons
-• multiple logos, thumbnails, grids, alternate variations, or icon rows
-• separate decorative icons under or above the logo
-• complex scenes, environments, rooms, or backgrounds with objects
-• people, hands, bodies, faces, or characters
-• watermarks, QR codes, barcodes, tiny legal text
-• random letters, misspelled text, or meaningless symbols
+==================================================
+TEXT SPELLING RULES (CRITICAL)
+==================================================
+✓ REQUIRED TEXT: "${companyName}"
+✓ SPELLING: Must be EXACTLY "${companyName}" with perfect accuracy
+✓ PLACEMENT: Text must be clearly integrated into the logo design
+✓ TYPOGRAPHY: Professional, readable, and appropriately scaled
+✓ NO EXCEPTIONS: Zero tolerance for typos, abbreviations, or alternate spellings
 
-==============================
-FINAL OUTPUT
-==============================
-Produce ONE centered logo for "${companyName}" on a plain or subtle gradient background:
-• clean vector-like rendering,
-• sharp and readable text,
-• coherent symbolism related to ${industry || "the business"},
-• polished, balanced, and ready to use as a brand logo.
+✗ DO NOT USE: Placeholder text, lorem ipsum, initials only, random letters
+✗ DO NOT ADD: Taglines, generic words, descriptive phrases, extra text
+✗ ONLY ALLOWED TEXT: "${companyName}"
+
+==================================================
+COMPREHENSIVE NEGATIVE PROMPT
+==================================================
+ABSOLUTELY DO NOT INCLUDE:
+
+❌ MOCKUPS & PRESENTATIONS:
+- Business cards, stationery, letterheads, envelopes
+- T-shirts, apparel, merchandise, products
+- Signage, billboards, storefront displays
+- Packaging, boxes, bags, labels, stickers
+- Posters, flyers, brochures, marketing materials
+- Paper textures, notebook pages, desk surfaces
+
+❌ DIGITAL MOCKUPS:
+- Website screenshots, app interfaces, UI screens
+- Device frames (phones, tablets, computers)
+- Social media posts, profile pictures
+- Digital banners, web ads
+
+❌ MULTIPLE VERSIONS:
+- Logo variations, alternates, size options
+- Icon sets, symbol libraries, element collections
+- Grid layouts, thumbnail rows, comparison sheets
+- Before/after views, process stages
+
+❌ PHOTOGRAPHIC ELEMENTS:
+- Real-world scenes, environments, rooms
+- Physical objects, props, surfaces
+- People, hands, bodies, faces
+- Cameras, equipment, tools
+- Shadows from external light sources
+
+❌ EXTRANEOUS ELEMENTS:
+- Decorative borders, frames, containers
+- Separate icons floating around the logo
+- QR codes, barcodes, watermarks
+- Copyright symbols, legal text
+- Measurement guides, rulers, crop marks
+
+❌ TEXT VIOLATIONS:
+- Misspelled company name
+- Abbreviated or shortened versions
+- Made-up words or placeholder text
+- Additional descriptive words
+- Random letters or symbols
+
+==================================================
+FINAL DELIVERABLE SPECIFICATION
+==================================================
+Produce a single, centered, professional logo for "${companyName}" that:
+
+1. Contains ONLY the logo itself on a clean background
+2. Displays "${companyName}" with perfect spelling and professional typography
+3. Uses ${colorStrategy.toLowerCase()}
+4. Embodies ${styleDirection.toLowerCase()}
+5. Incorporates relevant visual symbolism for the ${industry} industry
+6. Works perfectly at any scale (from favicon to billboard)
+7. Is immediately recognizable and memorable
+8. Appears polished, balanced, and ready for commercial use
+
+This is a real client project. Deliver one perfect logo.
 `.trim();
   }
 }
