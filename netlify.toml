@@ -1,14 +1,11 @@
 [build]
-  command = "npm run build"
-  publish = "dist"
+command = "npx vite build"
+publish = "dist"
 
 [build.environment]
-  # Exclude Supabase public keys from secrets scanning
-  # These are designed to be public and exposed in frontend applications
-  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY"
+SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY"
 
-# Redirect all routes to index.html for single-page application
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+from = "/*"
+to = "/index.html"
+status = 200
