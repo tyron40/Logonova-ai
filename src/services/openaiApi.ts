@@ -277,36 +277,117 @@ Return ONLY the enhanced description without commentary.
     const colorStrategy = this.getColorStrategy(colorScheme);
 
     const symbolGuidance = industrySymbols.length > 0
-      ? industrySymbols.slice(0, 2).join(", ")
-      : "industry symbol";
+      ? `Consider incorporating: ${industrySymbols.slice(0, 3).join(", ")}`
+      : "Use industry-appropriate visual symbolism";
 
     return `
-Professional logo for "${companyName}" | ${industry} | ${description}
+==============================================
+PROFESSIONAL LOGO DESIGN BRIEF
+==============================================
 
-STYLE: ${styleDirection}
-COLORS: ${colorStrategy}
-SYMBOLS: ${symbolGuidance}
-BRAND: ${keywords.slice(0, 3).join(", ") || "professional"}
+CLIENT: "${companyName}"
+INDUSTRY: ${industry}
+DESCRIPTION: ${description}
+BRAND VALUES: ${keywords.join(", ") || "professional, memorable, distinctive"}
 
-CRITICAL RULES - NON-NEGOTIABLE:
+STYLE DIRECTION: ${styleDirection}
+COLOR STRATEGY: ${colorStrategy}
+SYMBOLIC ELEMENTS: ${symbolGuidance}
 
-1. TEXT SPELLING: Display EXACTLY "${companyName}" with perfect spelling. NO typos, NO abbreviations, NO initials only, NO placeholder text, NO other words allowed.
+==============================================
+PRIMARY OBJECTIVE
+==============================================
+Create ONE (1) professional, production-ready logo for "${companyName}". This must be a single, centered logo mark on a clean background - NOT a layout, poster, grid, or design showcase.
 
-2. SINGLE LOGO ONLY: Output exactly ONE centered logo. NO multiple versions, NO thumbnails, NO grids, NO alternates, NO variations.
+==============================================
+TEXT SPELLING REQUIREMENTS (CRITICAL)
+==============================================
+✓ REQUIRED TEXT: "${companyName}"
+✓ EXACT SPELLING: Must be EXACTLY "${companyName}" with zero errors
+✓ TEXT INTEGRATION: Professionally integrated into the logo design
+✓ TYPOGRAPHY: Clear, readable, appropriately scaled, brand-appropriate font
+✓ ZERO TOLERANCE: No typos, no misspellings, no abbreviations, no alternate spellings
 
-3. CLEAN COMPOSITION: Vector-style design on plain/gradient background. NO mockups, NO business cards, NO stationery, NO products, NO packaging, NO t-shirts, NO signage, NO physical objects.
+✗ FORBIDDEN TEXT VIOLATIONS:
+- Placeholder text, lorem ipsum, dummy text, generic words
+- Using only initials, acronyms, or shortened versions
+- Random letters, symbols, or made-up words
+- Additional taglines, slogans, or descriptive phrases
+- Generic words like "logo", "company", "brand", "design"
+- Any text OTHER than "${companyName}"
 
-4. NO SCENES: NO real-world environments, NO rooms, NO desks, NO paper textures, NO photographs, NO people, NO hands.
+==============================================
+STRUCTURAL REQUIREMENTS
+==============================================
+✓ OUTPUT FORMAT: Exactly ONE centered logo on canvas
+✓ VISUAL STYLE: Clean vector-style design with crisp lines and smooth shapes
+✓ COMPOSITION: Single unified logo mark (not a collection or set)
+✓ SPACING: Generous clean space surrounding logo on all sides
+✓ BACKGROUND: Solid color or subtle gradient only (never textured, never photographic)
+✓ QUALITY: Production-ready, scalable from favicon size to billboard size
 
-5. NO EXTRAS: NO separate icons, NO borders, NO frames, NO QR codes, NO watermarks, NO measurement guides.
+✗ ABSOLUTELY FORBIDDEN LAYOUTS:
+- Multiple logo versions, variations, alternates, or options
+- Thumbnail grids, comparison layouts, option sheets, or galleries
+- Side-by-side presentations, A/B versions, or multiple views
+- Icon sets, element collections, symbol libraries, or component sheets
+- Brand guideline layouts, specification sheets, or style guides
 
-6. PROFESSIONAL ONLY: Clean, scalable, production-ready logo suitable for all business applications.
+==============================================
+MOCKUP & PRESENTATION PROHIBITIONS
+==============================================
+DO NOT INCLUDE ANY OF THESE:
 
-TEXT TO RENDER: "${companyName}"
-SPELL IT: "${companyName}"
-DISPLAY: "${companyName}"
+❌ PRINT MATERIALS: Business cards, letterheads, envelopes, stationery, brochures, flyers, posters, notepads, notebooks, paper textures, printed documents
 
-Deliver one perfect centered logo with the exact text "${companyName}" integrated professionally.
+❌ PRODUCTS & MERCHANDISE: T-shirts, apparel, clothing items, hats, mugs, cups, bags, tote bags, packaging, boxes, containers, labels, stickers, merchandise items
+
+❌ PHYSICAL DISPLAYS: Signage, sign boards, billboards, storefront displays, building facades, window graphics, banners, flags, outdoor advertising
+
+❌ DIGITAL MOCKUPS: Website screenshots, web pages, app interfaces, mobile screens, phone displays, tablets, computers, laptops, social media posts, profile pictures, digital ads
+
+❌ ENVIRONMENTAL SCENES: Desks, office spaces, rooms, walls, surfaces, workspaces, real-world environments, photography backgrounds, lifestyle scenes
+
+❌ PEOPLE & OBJECTS: People, hands, bodies, faces, cameras, equipment, tools, props, physical objects
+
+❌ PRESENTATION ELEMENTS: Decorative frames, borders, containers, separate floating icons, QR codes, barcodes, watermarks, copyright symbols, measurement guides, rulers, grid lines, crop marks, alignment guides
+
+==============================================
+COMPOSITION RULES
+==============================================
+✓ CENTER the logo perfectly on the canvas
+✓ USE generous negative space around the logo
+✓ ENSURE the logo is the ONLY element (no floating icons or decorative extras)
+✓ APPLY ${colorStrategy.toLowerCase()}
+✓ CREATE a design that works flawlessly at any scale
+✓ MAKE it instantly recognizable, memorable, and distinctive
+✓ MAINTAIN clean, professional, commercial-ready appearance
+
+✗ DO NOT create scenes, environments, or contextual settings
+✗ DO NOT add shadows from external light sources
+✗ DO NOT include photographic, realistic, or 3D rendered elements
+✗ DO NOT add unrelated graphics, decorations, or supplementary elements
+✗ DO NOT create layouts or presentations
+
+==============================================
+FINAL DELIVERABLE SPECIFICATION
+==============================================
+Produce a single, centered, professional logo for "${companyName}" that:
+
+1. Displays "${companyName}" with PERFECT spelling and professional typography
+2. Uses ${colorStrategy.toLowerCase()} with excellent contrast and visual harmony
+3. Embodies ${styleDirection.toLowerCase()}
+4. Incorporates appropriate visual symbolism for the ${industry} industry
+5. Works flawlessly at any scale from tiny favicon to massive billboard
+6. Appears polished, balanced, refined, and ready for immediate commercial use
+7. Contains ONLY the logo itself on a clean, simple background
+8. Is memorable, distinctive, and represents the brand perfectly
+
+This is a real production logo for a paying client. Deliver one perfect logo.
+
+COMPANY NAME TO DISPLAY: "${companyName}"
+SPELL IT EXACTLY AS: "${companyName}"
+NO VARIATIONS, ONLY: "${companyName}"
 `.trim();
   }
 }
