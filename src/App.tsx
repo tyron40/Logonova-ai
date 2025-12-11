@@ -147,7 +147,6 @@ function App() {
         subscription.unsubscribe();
       }
     };
-    );
   }, []);
 
   const loadLocalLogos = (userId?: string) => {
