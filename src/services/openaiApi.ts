@@ -55,7 +55,39 @@ export class OpenAILogoService {
   }
 
   async generateBusinessKeywords(companyName: string, description: string): Promise<string> {
-    throw new Error("Description enhancement is currently unavailable. Please write your own description.");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        throw new Error("You must be logged in to use AI enhancement");
+      }
+
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+      const apiUrl = `${apiBaseUrl}/api/enhance-description`;
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          companyName,
+          description: description || "",
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: "Enhancement failed" }));
+        throw new Error(error.error ?? "Failed to enhance description");
+      }
+
+      const data = await response.json();
+      return data.enhancedDescription ?? description;
+    } catch (err) {
+      console.error("Description Enhancement Error:", err);
+      throw new Error(err instanceof Error ? err.message : "Failed to enhance description");
+    }
   }
 }
 
