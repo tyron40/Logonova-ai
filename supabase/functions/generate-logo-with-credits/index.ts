@@ -114,7 +114,7 @@ Deno.serve(async (req: Request) => {
     // Build the logo prompt
     const prompt = buildLogoPrompt(requestData);
 
-    // Call OpenAI API
+    // Call OpenAI API with base64 format for permanent storage
     const openaiResponse = await fetch(
       "https://api.openai.com/v1/images/generations",
       {
@@ -129,7 +129,7 @@ Deno.serve(async (req: Request) => {
           size: "1024x1024",
           quality: "hd",
           n: 1,
-          response_format: "url",
+          response_format: "b64_json",
         }),
       }
     );
@@ -150,11 +150,58 @@ Deno.serve(async (req: Request) => {
     }
 
     const openaiData = await openaiResponse.json();
-    const imageUrl = openaiData.data?.[0]?.url;
+    const base64Image = openaiData.data?.[0]?.b64_json;
+
+    if (!base64Image) {
+      return new Response(
+        JSON.stringify({ error: "No image data returned from OpenAI" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Convert base64 to binary data
+    const binaryData = Uint8Array.from(atob(base64Image), (c) => c.charCodeAt(0));
+
+    // Generate unique filename
+    const timestamp = Date.now();
+    const sanitizedCompanyName = requestData.companyName
+      .replace(/[^a-zA-Z0-9]/g, "_")
+      .substring(0, 50);
+    const fileName = `${user.id}/${sanitizedCompanyName}_${timestamp}.png`;
+
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("logos")
+      .upload(fileName, binaryData, {
+        contentType: "image/png",
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error("Storage upload error:", uploadError);
+      return new Response(
+        JSON.stringify({ error: "Failed to save logo to storage" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Get permanent public URL
+    const { data: urlData } = supabase.storage
+      .from("logos")
+      .getPublicUrl(fileName);
+
+    const imageUrl = urlData.publicUrl;
 
     if (!imageUrl) {
       return new Response(
-        JSON.stringify({ error: "No image URL returned from OpenAI" }),
+        JSON.stringify({ error: "Failed to generate public URL" }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
