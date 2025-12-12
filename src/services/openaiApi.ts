@@ -28,15 +28,14 @@ export class OpenAILogoService {
         throw new Error("You must be logged in to generate logos");
       }
 
-      // Call the edge function
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-logo-with-credits`;
+      // Call the Vercel API
+      const apiUrl = `/api/generate-logo-with-credits`;
 
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${session.access_token}`,
           "Content-Type": "application/json",
-          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
         },
         body: JSON.stringify(request),
       });

@@ -51,7 +51,7 @@ export class StripeService {
     const successUrl = `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${baseUrl}/generator`;
 
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`, {
+    const response = await fetch(`/api/stripe-checkout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -154,7 +154,7 @@ export class StripeService {
     }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-payment`, {
+      const response = await fetch(`/api/verify-payment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
