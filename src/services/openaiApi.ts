@@ -56,9 +56,9 @@ export class OpenAILogoService {
 
   async generateBusinessKeywords(companyName: string, description: string): Promise<string> {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-      if (!session) {
+      if (sessionError || !session) {
         throw new Error("You must be logged in to use AI enhancement");
       }
 
@@ -69,7 +69,7 @@ export class OpenAILogoService {
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          "Authorization": `Bearer ${session.access_token}`,
           "Content-Type": "application/json",
           "apikey": supabaseAnonKey,
         },
@@ -80,8 +80,15 @@ export class OpenAILogoService {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: "Enhancement failed" }));
-        throw new Error(error.error ?? "Failed to enhance description");
+        const errorText = await response.text();
+        let errorMessage = "Enhancement failed";
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
