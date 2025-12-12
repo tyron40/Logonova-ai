@@ -29,7 +29,8 @@ export class OpenAILogoService {
       }
 
       // Call the Vercel API
-      const apiUrl = `/api/generate-logo-with-credits`;
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+      const apiUrl = `${apiBaseUrl}/api/generate-logo-with-credits`;
 
       const response = await fetch(apiUrl, {
         method: "POST",
