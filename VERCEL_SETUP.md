@@ -9,10 +9,17 @@ You need to configure the following environment variables in your Vercel project
 ### Supabase Configuration
 
 ```
+# For client-side (browser) access
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# For server-side (API functions) access
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ```
+
+**Note:** The `VITE_` prefixed variables are for client-side use, while the non-prefixed versions are for serverless API functions.
 
 ### OpenAI Configuration
 

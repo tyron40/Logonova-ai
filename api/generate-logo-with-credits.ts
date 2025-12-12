@@ -32,11 +32,11 @@ export default async function handler(
       return res.status(401).json({ error: 'Missing authorization header' });
     }
 
-    const supabaseUrl = process.env.VITE_SUPABASE_URL!;
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL!;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY!;
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY!;
     const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
       global: {
         headers: { Authorization: authHeader },
