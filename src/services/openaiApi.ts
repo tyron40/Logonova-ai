@@ -62,16 +62,14 @@ export class OpenAILogoService {
         throw new Error("You must be logged in to use AI enhancement");
       }
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      const apiUrl = `${supabaseUrl}/functions/v1/enhance-description`;
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+      const apiUrl = `${apiBaseUrl}/api/enhance-description`;
 
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${session.access_token}`,
           "Content-Type": "application/json",
-          "apikey": supabaseAnonKey,
         },
         body: JSON.stringify({
           companyName,
