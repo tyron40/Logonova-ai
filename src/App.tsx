@@ -14,6 +14,7 @@ import { stripeService } from './services/stripeService';
 import { apiKeyManager } from './services/apiKeyManager';
 import { supabaseService, supabase } from './services/supabase';
 import { creditService } from './services/creditService';
+import { logoService } from './services/logoService';
 
 function App() {
   const [currentView, setCurrentView] = useState<'home' | 'generator' | 'gallery' | 'plans' | 'success'>('home');
@@ -72,11 +73,10 @@ function App() {
         // Load saved logos
         if (user) {
           console.log('Loading user logos...');
-          // Load from localStorage with user prefix
-          loadLocalLogos(user.id);
+          await loadLogos(user.id);
         } else {
-          console.log('Loading local logos...');
-          loadLocalLogos();
+          console.log('No user logged in - clearing logos');
+          setSavedLogos([]);
         }
         
         console.log('App initialization complete');
@@ -118,11 +118,11 @@ function App() {
         // Reinitialize API key manager
         try {
           await apiKeyManager.initializeForUser(user?.id || null);
-          
+
           if (user && event === 'SIGNED_IN') {
-            loadLocalLogos(user.id);
+            await loadLogos(user.id);
           } else if (event === 'SIGNED_OUT') {
-            loadLocalLogos();
+            setSavedLogos([]);
           }
           
           setHasApiKey(apiKeyManager.hasApiKey('openai'));
@@ -142,29 +142,12 @@ function App() {
     };
   }, []);
 
-  const loadLocalLogos = (userId?: string) => {
+  const loadLogos = async (userId: string) => {
     try {
-      console.log('Loading local logos...');
-      const storageKey = userId ? `logoai-saved-logos-${userId}` : 'logoai-saved-logos';
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const parsedLogos = JSON.parse(saved).map((logo: any) => ({
-          ...logo,
-          createdAt: new Date(logo.createdAt),
-          companyName: logo.companyName || '',
-          generatedLogos: logo.generatedLogos || [],
-          selectedLogo: logo.selectedLogo || null,
-          keywords: logo.keywords || [],
-          description: logo.description || '',
-          industry: logo.industry || 'Technology & Software',
-          colorScheme: logo.colorScheme || 'royal-blue'
-        }));
-        setSavedLogos(parsedLogos);
-        console.log('Loaded local logos:', parsedLogos.length);
-      } else {
-        console.log('No local logos found');
-        setSavedLogos([]);
-      }
+      console.log('Loading logos from database...');
+      const logos = await logoService.loadLogos(userId);
+      setSavedLogos(logos);
+      console.log('Loaded logos:', logos.length);
     } catch (error) {
       console.error('Error loading saved logos:', error);
       setSavedLogos([]);
@@ -172,19 +155,23 @@ function App() {
   };
 
   const handleSaveLogo = async (logo: LogoConfig) => {
+    if (!currentUser) {
+      alert('Please sign in to save logos.');
+      setShowAuthModal(true);
+      return;
+    }
+
     try {
-      // Always save locally
-      const storageKey = currentUser ? `logoai-saved-logos-${currentUser.id}` : 'logoai-saved-logos';
+      await logoService.saveLogo(logo, currentUser.id);
+
       setSavedLogos(prev => {
         const existing = prev.find(l => l.id === logo.id);
-        const updated = existing ? 
-          prev.map(l => l.id === logo.id ? logo : l) : 
+        return existing ?
+          prev.map(l => l.id === logo.id ? logo : l) :
           [logo, ...prev];
-        localStorage.setItem(storageKey, JSON.stringify(updated));
-        return updated;
       });
-      
-      alert('Logo configuration saved successfully!');
+
+      alert('Logo saved successfully with permanent storage!');
     } catch (error) {
       console.error('Error saving logo:', error);
       alert('Failed to save logo. Please try again.');
@@ -192,18 +179,13 @@ function App() {
   };
 
   const handleDeleteLogo = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this logo configuration?')) {
+    if (!currentUser) {
       return;
     }
 
     try {
-      // Always delete locally
-      const storageKey = currentUser ? `logoai-saved-logos-${currentUser.id}` : 'logoai-saved-logos';
-      setSavedLogos(prev => {
-        const updated = prev.filter(logo => logo.id !== id);
-        localStorage.setItem(storageKey, JSON.stringify(updated));
-        return updated;
-      });
+      await logoService.deleteLogo(id, currentUser.id);
+      setSavedLogos(prev => prev.filter(logo => logo.id !== id));
     } catch (error) {
       console.error('Error deleting logo:', error);
       alert('Failed to delete logo. Please try again.');
@@ -237,9 +219,9 @@ function App() {
     
     // Give new user credits only if this is their first time
     creditService.giveNewUserCredits(user.id);
-    
+
     // Load user-specific data
-    loadLocalLogos(user.id);
+    await loadLogos(user.id);
     setHasApiKey(apiKeyManager.hasApiKey('openai'));
   };
 
@@ -247,7 +229,7 @@ function App() {
     try {
       await supabaseService.signOut();
       setCurrentUser(null);
-      loadLocalLogos();
+      setSavedLogos([]);
     } catch (error) {
       console.error('Error signing out:', error);
     }
