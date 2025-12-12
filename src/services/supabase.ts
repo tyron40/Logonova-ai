@@ -3,6 +3,13 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+console.log('Environment check:', {
+  hasUrl: !!supabaseUrl,
+  hasKey: !!supabaseAnonKey,
+  urlValue: supabaseUrl,
+  keyLength: supabaseAnonKey?.length
+});
+
 // Enhanced validation functions
 function isValidUrl(string: string): boolean {
   try {
@@ -58,6 +65,8 @@ export const supabase = envValidation.isValid ?
   }) : null;
 
 if (!envValidation.isValid) {
+  console.error('❌ Supabase Configuration Errors:');
+  envValidation.errors.forEach(error => console.error(`  - ${error}`));
   console.warn('⚠️ Supabase not configured - authentication features will be disabled');
   console.warn('To enable authentication:');
   console.warn('1. Create a .env file in your project root');
