@@ -58,10 +58,23 @@ Deno.serve(async (req: Request) => {
     const requestData: EnhanceRequest = await req.json();
     const { companyName, description } = requestData;
 
-    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
+    // First try to get user's API key from database
+    const { data: userApiKeys, error: apiKeyError } = await supabase
+      .from("user_api_keys")
+      .select("openai_api_key")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    let openaiApiKey = userApiKeys?.openai_api_key;
+
+    // Fallback to environment variable if user doesn't have their own key
+    if (!openaiApiKey) {
+      openaiApiKey = Deno.env.get("OPENAI_API_KEY");
+    }
+
     if (!openaiApiKey) {
       return new Response(
-        JSON.stringify({ error: "OpenAI API key not configured" }),
+        JSON.stringify({ error: "OpenAI API key not configured. Please add your API key in settings." }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

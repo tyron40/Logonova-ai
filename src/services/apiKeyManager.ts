@@ -82,8 +82,39 @@ export class ApiKeyManager {
   }
 
   private async loadSupabaseApiKeys(userId: string) {
-    // This would load from Supabase if implemented
-    console.log('Supabase API key loading not implemented yet');
+    try {
+      const { data, error } = await supabaseService.getClient()
+        .from('user_api_keys')
+        .select('openai_api_key, replicate_api_key, gemini_api_key, hugging_face_api_key')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.warn('Failed to load Supabase API keys:', error);
+        return;
+      }
+
+      if (data) {
+        if (data.openai_api_key && !this.cachedKeys.openai) {
+          this.cachedKeys.openai = data.openai_api_key;
+          console.log('Loaded openai API key from Supabase');
+        }
+        if (data.replicate_api_key && !this.cachedKeys.replicate) {
+          this.cachedKeys.replicate = data.replicate_api_key;
+          console.log('Loaded replicate API key from Supabase');
+        }
+        if (data.gemini_api_key && !this.cachedKeys.gemini) {
+          this.cachedKeys.gemini = data.gemini_api_key;
+          console.log('Loaded gemini API key from Supabase');
+        }
+        if (data.hugging_face_api_key && !this.cachedKeys.huggingFace) {
+          this.cachedKeys.huggingFace = data.hugging_face_api_key;
+          console.log('Loaded huggingFace API key from Supabase');
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load Supabase API keys:', error);
+    }
   }
 
   async setApiKey(keyType: 'replicate' | 'openai' | 'gemini' | 'huggingFace', apiKey: string) {
@@ -129,8 +160,38 @@ export class ApiKeyManager {
   }
 
   private async storeApiKeyToSupabase(keyType: string, apiKey: string) {
-    // This would save to Supabase if implemented
-    console.log(`Supabase API key storage not implemented for ${keyType}`);
+    try {
+      const columnMap: Record<string, string> = {
+        openai: 'openai_api_key',
+        replicate: 'replicate_api_key',
+        gemini: 'gemini_api_key',
+        huggingFace: 'hugging_face_api_key'
+      };
+
+      const columnName = columnMap[keyType];
+      if (!columnName) {
+        console.warn(`Unknown key type: ${keyType}`);
+        return;
+      }
+
+      const { error } = await supabaseService.getClient()
+        .from('user_api_keys')
+        .upsert({
+          user_id: this.currentUserId,
+          [columnName]: apiKey,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
+        });
+
+      if (error) {
+        console.warn(`Failed to save ${keyType} API key to Supabase:`, error);
+      } else {
+        console.log(`Saved ${keyType} API key to Supabase`);
+      }
+    } catch (error) {
+      console.warn(`Failed to save ${keyType} API key to Supabase:`, error);
+    }
   }
 
   getApiKey(keyType: 'replicate' | 'openai' | 'gemini' | 'huggingFace'): string | null {
@@ -164,7 +225,22 @@ export class ApiKeyManager {
     // Clear from Supabase if available and user is logged in
     if (this.currentUserId && supabaseService.isAvailable()) {
       try {
-        console.log('Supabase API key clearing not implemented yet');
+        const { error } = await supabaseService.getClient()
+          .from('user_api_keys')
+          .update({
+            openai_api_key: null,
+            replicate_api_key: null,
+            gemini_api_key: null,
+            hugging_face_api_key: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', this.currentUserId);
+
+        if (error) {
+          console.warn('Failed to clear Supabase API keys:', error);
+        } else {
+          console.log('Cleared API keys from Supabase');
+        }
       } catch (error) {
         console.warn('Failed to clear Supabase API keys:', error);
       }
