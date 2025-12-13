@@ -3,8 +3,8 @@ import { Sparkles, Menu, X, User, LogOut, LogIn, Settings } from 'lucide-react';
 import { CreditDisplay } from './CreditDisplay';
 
 interface HeaderProps {
-  currentView: 'home' | 'generator' | 'gallery';
-  onViewChange: (view: 'home' | 'generator' | 'gallery') => void;
+  currentView: 'home' | 'generator';
+  onViewChange: (view: 'home' | 'generator') => void;
   currentUser: any;
   onSignOut: () => void;
   onShowAuth: () => void;
@@ -12,11 +12,11 @@ interface HeaderProps {
   onShowAccountSettings?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ 
-  currentView, 
-  onViewChange, 
-  currentUser, 
-  onSignOut, 
+export const Header: React.FC<HeaderProps> = ({
+  currentView,
+  onViewChange,
+  currentUser,
+  onSignOut,
   onShowAuth,
   onPurchaseCredits,
   onShowAccountSettings
@@ -26,8 +26,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const navItems = [
     { id: 'home' as const, label: 'Home' },
-    { id: 'generator' as const, label: 'Generator' },
-    { id: 'gallery' as const, label: 'Gallery' }
+    { id: 'generator' as const, label: 'Generator' }
   ];
 
   return (

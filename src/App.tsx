@@ -3,7 +3,6 @@ import { LogoConfig } from './types';
 import { Header } from './components/Header';
 import { HomePage } from './components/HomePage';
 import LogoGenerator from './components/LogoGenerator';
-import { Gallery } from './components/Gallery';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { AuthModal } from './components/AuthModal';
 import { SubscriptionPlans } from './components/SubscriptionPlans';
@@ -17,7 +16,7 @@ import { creditService } from './services/creditService';
 import { logoService } from './services/logoService';
 
 function App() {
-  const [currentView, setCurrentView] = useState<'home' | 'generator' | 'gallery' | 'plans' | 'success'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'generator' | 'plans' | 'success'>('home');
   const [savedLogos, setSavedLogos] = useState<LogoConfig[]>([]);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -248,17 +247,15 @@ function App() {
         return <HomePage onStartGenerating={handleStartGenerating} />;
       case 'generator':
         return (
-          <LogoGenerator 
+          <LogoGenerator
             onSaveLogo={handleSaveLogo}
             currentUser={currentUser}
             onPurchaseCredits={handlePurchaseCredits}
           />
         );
-      case 'gallery':
-        return <Gallery savedLogos={savedLogos} onDeleteLogo={handleDeleteLogo} />;
       case 'success':
         return (
-          <SuccessPage 
+          <SuccessPage
             onNavigateHome={() => setCurrentView('home')}
             onNavigateGenerator={() => setCurrentView('generator')}
             currentUser={currentUser}
