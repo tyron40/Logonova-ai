@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wand2, Download, Loader2, Sparkles, Save, RefreshCw, Lightbulb } from 'lucide-react';
+import { Wand2, Download, Loader2, Sparkles, Save, RefreshCw, Lightbulb, Eye, X } from 'lucide-react';
 import { openaiLogoService } from '../services/openaiApi';
 import { SubscriptionPlans } from './SubscriptionPlans';
 import { CreditDisplay } from './CreditDisplay';
@@ -28,6 +28,7 @@ export default function LogoGenerator({
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [error, setError] = useState('');
   const [credits, setCredits] = useState(0);
+  const [showPreview, setShowPreview] = useState(false);
 
   // Update credits when user changes
   React.useEffect(() => {
@@ -528,16 +529,19 @@ export default function LogoGenerator({
             {logoUrl ? (
               <div className="text-center">
                 <h3 className="text-2xl font-bold text-white mb-6">Your Logo</h3>
-                
-                <div className="bg-white rounded-2xl p-8 mb-6 inline-block">
+
+                <div className="relative group bg-white rounded-2xl p-8 mb-6 inline-block cursor-pointer" onClick={() => setShowPreview(true)}>
                   <img
                     src={logoUrl}
                     alt={`Logo for ${companyName}`}
-                    className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 transition-all mobile-input"
+                    className="w-full max-w-sm mx-auto"
                   />
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
+                    <Eye className="w-12 h-12 text-white" />
+                  </div>
                 </div>
 
-                <div className="flex gap-4 justify-center">
+                <div className="flex gap-4 justify-center flex-wrap">
                   <button
                     onClick={handleDownload}
                     className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors download-button mobile-optimized mobile-button"
@@ -554,10 +558,10 @@ export default function LogoGenerator({
                   </button>
                   <button
                     onClick={() => {
-                      handleGenerate(); // Auto-regenerate with same rules
+                      handleGenerate();
                     }}
                     disabled={isGenerating || !companyName.trim()}
-                    className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors mobile-optimized mobile-button"
+                    className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed mobile-optimized mobile-button"
                   >
                     <RefreshCw className="w-5 h-5" />
                     {isGenerating ? 'Generating...' : 'New Logo'}
@@ -581,6 +585,57 @@ export default function LogoGenerator({
         </div>
 
       </div>
+
+      {/* Preview Modal */}
+      {showPreview && logoUrl && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/90 flex items-center justify-center p-4" onClick={() => setShowPreview(false)}>
+          <div className="relative bg-gray-800 rounded-2xl max-w-4xl w-full p-8" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setShowPreview(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors bg-gray-700 hover:bg-gray-600 rounded-full p-2"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            <div className="text-center mb-6">
+              <h2 className="text-3xl font-bold text-white mb-2">
+                {companyName}
+              </h2>
+              <p className="text-gray-400 capitalize">{style} Style</p>
+            </div>
+
+            <div className="flex justify-center mb-8">
+              <div className="bg-white p-12 rounded-xl shadow-2xl max-w-2xl">
+                <img
+                  src={logoUrl}
+                  alt={`Logo for ${companyName}`}
+                  className="w-full h-auto object-contain"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors download-button mobile-optimized mobile-button"
+              >
+                <Download className="w-5 h-5" />
+                Download
+              </button>
+              <button
+                onClick={() => {
+                  handleSave();
+                  setShowPreview(false);
+                }}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors mobile-optimized mobile-button"
+              >
+                <Save className="w-5 h-5" />
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
