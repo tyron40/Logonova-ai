@@ -117,10 +117,104 @@ async function handleEvent(event: Stripe.Event) {
           return;
         }
         console.info(`Successfully processed one-time payment for session: ${checkout_session_id}`);
+
+        // Add credits to user account
+        await addCreditsToUser(customerId, checkout_session_id, amount_total);
       } catch (error) {
         console.error('Error processing one-time payment:', error);
       }
     }
+  }
+}
+
+// Add credits to user account based on payment amount
+async function addCreditsToUser(customerId: string, sessionId: string, amountTotal: number | null) {
+  try {
+    // Get the user_id from stripe_customers table
+    const { data: customer, error: customerError } = await supabase
+      .from('stripe_customers')
+      .select('user_id')
+      .eq('stripe_customer_id', customerId)
+      .maybeSingle();
+
+    if (customerError || !customer) {
+      console.error('Error finding customer:', customerError);
+      return;
+    }
+
+    const userId = customer.user_id;
+
+    // Check if credits were already added for this session to prevent duplicates
+    const { data: existingTransaction, error: checkError } = await supabase
+      .from('credit_transactions')
+      .select('id')
+      .eq('stripe_session_id', sessionId)
+      .maybeSingle();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Error checking existing transaction:', checkError);
+      return;
+    }
+
+    if (existingTransaction) {
+      console.log(`Credits already added for session ${sessionId}`);
+      return;
+    }
+
+    // Map amount to credits (amounts are in cents)
+    let credits = 0;
+    if (amountTotal && amountTotal >= 5000) credits = 150;
+    else if (amountTotal && amountTotal >= 2000) credits = 55;
+    else if (amountTotal && amountTotal >= 1000) credits = 25;
+    else if (amountTotal && amountTotal >= 500) credits = 10;
+    else credits = 5;
+
+    // Add credits to user_api_keys table
+    const { data: currentBalance, error: balanceError } = await supabase
+      .from('user_api_keys')
+      .select('credit_balance')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (balanceError) {
+      console.error('Error fetching current balance:', balanceError);
+      return;
+    }
+
+    const newBalance = (currentBalance?.credit_balance || 0) + credits;
+
+    const { error: updateError } = await supabase
+      .from('user_api_keys')
+      .update({
+        credit_balance: newBalance,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId);
+
+    if (updateError) {
+      console.error('Error updating credit balance:', updateError);
+      return;
+    }
+
+    // Record the transaction in credit_transactions table
+    const { error: transactionError } = await supabase
+      .from('credit_transactions')
+      .insert({
+        user_id: userId,
+        transaction_type: 'purchase',
+        credits_amount: credits,
+        stripe_session_id: sessionId,
+        description: `Purchased ${credits} credits`
+      });
+
+    if (transactionError) {
+      console.error('Error recording credit transaction:', transactionError);
+      return;
+    }
+
+    console.log(`Successfully added ${credits} credits to user ${userId} for session ${sessionId}`);
+  } catch (error) {
+    console.error('Error adding credits to user:', error);
   }
 }
 
