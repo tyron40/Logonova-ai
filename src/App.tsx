@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { LogoConfig } from './types';
 import { Header } from './components/Header';
 import { HomePage } from './components/HomePage';
 import LogoGenerator from './components/LogoGenerator';
@@ -13,11 +12,8 @@ import { stripeService } from './services/stripeService';
 import { apiKeyManager } from './services/apiKeyManager';
 import { supabaseService, supabase } from './services/supabase';
 import { creditService } from './services/creditService';
-import { logoService } from './services/logoService';
-
 function App() {
   const [currentView, setCurrentView] = useState<'home' | 'generator' | 'plans' | 'success'>('home');
-  const [savedLogos, setSavedLogos] = useState<LogoConfig[]>([]);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCreditModal, setShowCreditModal] = useState(false);
@@ -69,15 +65,6 @@ function App() {
         console.log('Has OpenAI API key from .env:', hasOpenAIKey);
         setHasApiKey(hasOpenAIKey);
 
-        // Load saved logos
-        if (user) {
-          console.log('Loading user logos...');
-          await loadLogos(user.id);
-        } else {
-          console.log('No user logged in - clearing logos');
-          setSavedLogos([]);
-        }
-        
         console.log('App initialization complete');
       } catch (error) {
         console.error('Error initializing app:', error);
@@ -117,13 +104,6 @@ function App() {
         // Reinitialize API key manager
         try {
           await apiKeyManager.initializeForUser(user?.id || null);
-
-          if (user && event === 'SIGNED_IN') {
-            await loadLogos(user.id);
-          } else if (event === 'SIGNED_OUT') {
-            setSavedLogos([]);
-          }
-          
           setHasApiKey(apiKeyManager.hasApiKey('openai'));
         } catch (error) {
           console.error('Error handling auth change:', error);
@@ -140,56 +120,6 @@ function App() {
       }
     };
   }, []);
-
-  const loadLogos = async (userId: string) => {
-    try {
-      console.log('Loading logos from database...');
-      const logos = await logoService.loadLogos(userId);
-      setSavedLogos(logos);
-      console.log('Loaded logos:', logos.length);
-    } catch (error) {
-      console.error('Error loading saved logos:', error);
-      setSavedLogos([]);
-    }
-  };
-
-  const handleSaveLogo = async (logo: LogoConfig) => {
-    if (!currentUser) {
-      alert('Please sign in to save logos.');
-      setShowAuthModal(true);
-      return;
-    }
-
-    try {
-      await logoService.saveLogo(logo, currentUser.id);
-
-      setSavedLogos(prev => {
-        const existing = prev.find(l => l.id === logo.id);
-        return existing ?
-          prev.map(l => l.id === logo.id ? logo : l) :
-          [logo, ...prev];
-      });
-
-      alert('Logo saved successfully with permanent storage!');
-    } catch (error) {
-      console.error('Error saving logo:', error);
-      alert('Failed to save logo. Please try again.');
-    }
-  };
-
-  const handleDeleteLogo = async (id: string) => {
-    if (!currentUser) {
-      return;
-    }
-
-    try {
-      await logoService.deleteLogo(id, currentUser.id);
-      setSavedLogos(prev => prev.filter(logo => logo.id !== id));
-    } catch (error) {
-      console.error('Error deleting logo:', error);
-      alert('Failed to delete logo. Please try again.');
-    }
-  };
 
   const handleStartGenerating = () => {
     setCurrentView('generator');
@@ -212,15 +142,13 @@ function App() {
   const handleAuthSuccess = async (user: any) => {
     setCurrentUser(user);
     setShowAuthModal(false);
-    
+
     // Migrate guest credits to user account if any exist
     creditService.migrateUserCredits('guest', user.id);
-    
+
     // Give new user credits only if this is their first time
     creditService.giveNewUserCredits(user.id);
 
-    // Load user-specific data
-    await loadLogos(user.id);
     setHasApiKey(apiKeyManager.hasApiKey('openai'));
   };
 
@@ -228,7 +156,6 @@ function App() {
     try {
       await supabaseService.signOut();
       setCurrentUser(null);
-      setSavedLogos([]);
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -248,7 +175,6 @@ function App() {
       case 'generator':
         return (
           <LogoGenerator
-            onSaveLogo={handleSaveLogo}
             currentUser={currentUser}
             onPurchaseCredits={handlePurchaseCredits}
           />

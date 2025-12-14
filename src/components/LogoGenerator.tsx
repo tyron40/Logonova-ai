@@ -1,20 +1,17 @@
 import React, { useState } from 'react';
-import { Wand2, Download, Loader2, Sparkles, Save, RefreshCw, Lightbulb, Eye, X } from 'lucide-react';
+import { Wand2, Download, Loader2, Sparkles, RefreshCw, Lightbulb, Eye, X } from 'lucide-react';
 import { openaiLogoService } from '../services/openaiApi';
 import { SubscriptionPlans } from './SubscriptionPlans';
 import { CreditDisplay } from './CreditDisplay';
 import { creditService } from '../services/creditService';
-import { LogoConfig, GeneratedLogo } from '../types';
 import { apiKeyManager } from '../services/apiKeyManager';
 
 interface LogoGeneratorProps {
-  onSaveLogo: (logo: LogoConfig) => void;
   currentUser?: any;
   onPurchaseCredits: () => void;
 }
 
-export default function LogoGenerator({ 
-  onSaveLogo, 
+export default function LogoGenerator({
   currentUser,
   onPurchaseCredits
 }: LogoGeneratorProps) {
@@ -177,143 +174,36 @@ export default function LogoGenerator({
 
     try {
       const filename = `${companyName.replace(/[^a-zA-Z0-9]/g, '_')}_logo.png`;
-      
-      // Check if we can use the modern download API
-      if ('showSaveFilePicker' in window) {
-        // Modern browsers with File System Access API
-        try {
-          const response = await fetch(logoUrl);
-          const blob = await response.blob();
-          
-          const fileHandle = await (window as any).showSaveFilePicker({
-            suggestedName: filename,
-            types: [{
-              description: 'PNG Images',
-              accept: { 'image/png': ['.png'] }
-            }]
-          });
-          
-          const writable = await fileHandle.createWritable();
-          await writable.write(blob);
-          await writable.close();
-          return;
-        } catch (err) {
-          // Fall back to traditional download if user cancels or error occurs
-          console.log('File System Access API failed, falling back to traditional download');
-        }
-      }
-      
-      // Try to download as blob first (works on most desktop browsers)
-      try {
-        const response = await fetch(logoUrl, {
-          mode: 'cors'
-        });
-        const blob = await response.blob();
-        
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.href = url;
-        link.download = filename;
-        link.style.display = 'none';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        return;
-      } catch (fetchError) {
-        console.warn('Blob download failed, trying direct link method');
-      }
-      
-      // Mobile fallback or CORS issues - open in new tab with instructions
-      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        // Mobile: Open in new tab for manual save
-        const link = document.createElement('a');
-        link.href = logoUrl;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        // Show mobile-friendly instructions
-        if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-          setTimeout(() => {
-            alert('Tap and hold the logo image, then select "Save to Photos" or "Save Image"');
-          }, 1000);
-        } else {
-          setTimeout(() => {
-            alert('Logo opened in new tab. Long press the image to save it to your device.');
-          }, 1000);
-        }
-      } else {
-        // Desktop fallback - direct download attempt
-        const link = document.createElement('a');
-        link.href = logoUrl;
-        link.download = filename;
-        link.target = '_blank';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
+
+      // Fetch the image as a blob
+      const response = await fetch(logoUrl);
+      const blob = await response.blob();
+
+      // Create a blob URL
+      const blobUrl = URL.createObjectURL(blob);
+
+      // Create a temporary download link
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      link.style.display = 'none';
+
+      // Append to body, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up the blob URL after a short delay
+      setTimeout(() => {
+        URL.revokeObjectURL(blobUrl);
+      }, 100);
+
     } catch (error) {
       console.error('Download failed:', error);
-      // Final fallback: open image in new tab
-      const fallbackLink = document.createElement('a');
-      fallbackLink.href = logoUrl;
-      fallbackLink.target = '_blank';
-      fallbackLink.rel = 'noopener noreferrer';
-      
-      document.body.appendChild(fallbackLink);
-      fallbackLink.click();
-      document.body.removeChild(fallbackLink);
-      
-      alert('Download failed. The image has been opened in a new tab - please right-click and save it manually.');
-      setError('');
+      setError('Failed to download logo. Please try again or right-click the image to save it manually.');
     }
   };
 
-  const handleSave = async () => {
-    if (!logoUrl || !companyName.trim()) {
-      setError('No logo to save');
-      return;
-    }
-
-    try {
-      const generatedLogo: GeneratedLogo = {
-        id: crypto.randomUUID(),
-        imageUrl: logoUrl,
-        prompt: `${style} logo for ${companyName.trim()}`,
-        style: style,
-        companyName: companyName.trim(),
-        industry: 'Professional Services',
-        colors: [colors.find(c => c.value === selectedColor)?.color || '#3b82f6'],
-        createdAt: new Date()
-      };
-
-      const logoConfig: LogoConfig = {
-        id: crypto.randomUUID(),
-        companyName: companyName.trim(),
-        industry: 'Professional Services',
-        style: style,
-        colorScheme: selectedColor,
-        description: description.trim(),
-        keywords: [style, selectedColor, 'professional'],
-        generatedLogos: [generatedLogo],
-        selectedLogo: generatedLogo,
-        createdAt: new Date()
-      };
-      
-      onSaveLogo(logoConfig);
-      setError('');
-      alert('Logo saved successfully!');
-    } catch (error) {
-      console.error('Error saving logo:', error);
-      setError('Failed to save logo. Please try again.');
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
@@ -550,13 +440,6 @@ export default function LogoGenerator({
                     Download
                   </button>
                   <button
-                    onClick={handleSave}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors mobile-optimized mobile-button"
-                  >
-                    <Save className="w-5 h-5" />
-                    Save
-                  </button>
-                  <button
                     onClick={() => {
                       handleGenerate();
                     }}
@@ -616,21 +499,14 @@ export default function LogoGenerator({
 
             <div className="flex justify-center gap-4">
               <button
-                onClick={handleDownload}
+                onClick={() => {
+                  handleDownload();
+                  setShowPreview(false);
+                }}
                 className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors download-button mobile-optimized mobile-button"
               >
                 <Download className="w-5 h-5" />
                 Download
-              </button>
-              <button
-                onClick={() => {
-                  handleSave();
-                  setShowPreview(false);
-                }}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors mobile-optimized mobile-button"
-              >
-                <Save className="w-5 h-5" />
-                Save
               </button>
             </div>
           </div>
