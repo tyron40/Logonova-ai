@@ -175,8 +175,17 @@ export default function LogoGenerator({
     try {
       const filename = `${companyName.replace(/[^a-zA-Z0-9]/g, '_')}_logo.png`;
 
-      // Fetch the image as a blob
-      const response = await fetch(logoUrl);
+      // Use proxy endpoint to avoid CORS issues
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+      const proxyUrl = `${apiBaseUrl}/api/download-logo?url=${encodeURIComponent(logoUrl)}`;
+
+      // Fetch through proxy
+      const response = await fetch(proxyUrl);
+
+      if (!response.ok) {
+        throw new Error('Failed to download image');
+      }
+
       const blob = await response.blob();
 
       // Create a blob URL
