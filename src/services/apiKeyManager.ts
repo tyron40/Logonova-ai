@@ -1,4 +1,4 @@
-import { supabaseService } from './supabase';
+import { supabase, supabaseService } from './supabase';
 
 export interface ApiKeys {
   replicate?: string;
@@ -83,7 +83,9 @@ export class ApiKeyManager {
 
   private async loadSupabaseApiKeys(userId: string) {
     try {
-      const { data, error } = await supabaseService.getClient()
+      if (!supabase) return;
+
+      const { data, error } = await supabase
         .from('user_api_keys')
         .select('openai_api_key, replicate_api_key, gemini_api_key, hugging_face_api_key')
         .eq('user_id', userId)
@@ -174,7 +176,9 @@ export class ApiKeyManager {
         return;
       }
 
-      const { error } = await supabaseService.getClient()
+      if (!supabase) return;
+
+      const { error } = await supabase
         .from('user_api_keys')
         .upsert({
           user_id: this.currentUserId,
@@ -223,9 +227,9 @@ export class ApiKeyManager {
     }
 
     // Clear from Supabase if available and user is logged in
-    if (this.currentUserId && supabaseService.isAvailable()) {
+    if (this.currentUserId && supabaseService.isAvailable() && supabase) {
       try {
-        const { error } = await supabaseService.getClient()
+        const { error} = await supabase
           .from('user_api_keys')
           .update({
             openai_api_key: null,
