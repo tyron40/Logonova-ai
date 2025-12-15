@@ -18,8 +18,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({ logoConfig, onClose })
 
   const [isExporting, setIsExporting] = useState(false);
 
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
   const formatOptions = [
     { value: 'png', label: 'PNG', icon: FileImage, description: 'Best for web and digital use with transparency' },
     { value: 'jpg', label: 'JPG', icon: FileImage, description: 'Smaller file size, good for web without transparency' },
@@ -113,25 +111,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({ logoConfig, onClose })
 
   const downloadFile = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
-
-    if (isMobile) {
-      window.open(url, '_blank');
-      setTimeout(() => URL.revokeObjectURL(url), 100);
-    } else {
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-  };
-
-  const handleQuickSave = () => {
-    if (!logoConfig.selectedLogo) return;
-
-    window.open(logoConfig.selectedLogo.imageUrl, '_blank');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -276,38 +262,19 @@ export const ExportModal: React.FC<ExportModalProps> = ({ logoConfig, onClose })
             </div>
           </div>
 
-          {/* Export Buttons */}
-          <div className="mt-8 space-y-4">
-            {isMobile && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-blue-900 mb-2">Quick Save to Photos</h4>
-                <p className="text-sm text-blue-700 mb-3">
-                  Open the image in a new tab, then tap and hold to save to your photo library
-                </p>
-                <button
-                  onClick={handleQuickSave}
-                  className="w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors mobile-optimized mobile-button"
-                >
-                  <FileImage className="w-5 h-5" />
-                  <span>Open Image to Save</span>
-                </button>
-              </div>
-            )}
-
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-              <div className="text-sm text-gray-600">
-                {!isMobile && `File will be saved as: ${logoConfig.companyName.toLowerCase().replace(/\s+/g, '-')}-logo.${exportFormat.format}`}
-                {isMobile && 'Or customize export settings:'}
-              </div>
-              <button
-                onClick={handleExport}
-                disabled={isExporting}
-                className="flex items-center justify-center space-x-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 sm:px-8 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mobile-optimized mobile-button"
-              >
-                <Download className="w-5 h-5" />
-                <span>{isExporting ? 'Exporting...' : isMobile ? 'Custom Export' : 'Export Logo'}</span>
-              </button>
+          {/* Export Button */}
+          <div className="mt-8 flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              File will be saved as: {logoConfig.companyName.toLowerCase().replace(/\s+/g, '-')}-logo.{exportFormat.format}
             </div>
+            <button
+              onClick={handleExport}
+              disabled={isExporting}
+              className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Download className="w-5 h-5" />
+              <span>{isExporting ? 'Exporting...' : 'Export Logo'}</span>
+            </button>
           </div>
         </div>
       </div>

@@ -27,8 +27,6 @@ export default function LogoGenerator({
   const [credits, setCredits] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
 
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
   React.useEffect(() => {
     if (currentUser?.id) {
       updateCredits();
@@ -157,17 +155,14 @@ export default function LogoGenerator({
   const handleDownload = async () => {
     if (!logoUrl) return;
 
-    if (isMobile) {
-      window.open(logoUrl, '_blank');
-      return;
-    }
-
     try {
       const filename = `${companyName.replace(/[^a-zA-Z0-9]/g, '_')}_logo.png`;
 
+      // Use proxy endpoint to avoid CORS issues
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
       const proxyUrl = `${apiBaseUrl}/api/download-logo?url=${encodeURIComponent(logoUrl)}`;
 
+      // Fetch through proxy
       const response = await fetch(proxyUrl);
 
       if (!response.ok) {
@@ -175,17 +170,22 @@ export default function LogoGenerator({
       }
 
       const blob = await response.blob();
+
+      // Create a blob URL
       const blobUrl = URL.createObjectURL(blob);
 
+      // Create a temporary download link
       const link = document.createElement('a');
       link.href = blobUrl;
       link.download = filename;
       link.style.display = 'none';
 
+      // Append to body, click, and remove
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
+      // Clean up the blob URL after a short delay
       setTimeout(() => {
         URL.revokeObjectURL(blobUrl);
       }, 100);
@@ -423,32 +423,24 @@ export default function LogoGenerator({
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  {isMobile && (
-                    <div className="bg-blue-900/30 border border-blue-500/30 rounded-xl p-4 text-sm text-blue-200 mb-4">
-                      <p className="font-medium mb-1">Save to Photos:</p>
-                      <p>Tap the button below, then tap and hold the image to save it to your photo library</p>
-                    </div>
-                  )}
-                  <div className="flex gap-4 justify-center flex-wrap">
-                    <button
-                      onClick={handleDownload}
-                      className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors download-button mobile-optimized mobile-button"
-                    >
-                      <Download className="w-5 h-5" />
-                      {isMobile ? 'Open to Save' : 'Download'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleGenerate();
-                      }}
-                      disabled={isGenerating || !companyName.trim()}
-                      className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed mobile-optimized mobile-button"
-                    >
-                      <RefreshCw className="w-5 h-5" />
-                      {isGenerating ? 'Generating...' : 'New Logo'}
-                    </button>
-                  </div>
+                <div className="flex gap-4 justify-center flex-wrap">
+                  <button
+                    onClick={handleDownload}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors download-button mobile-optimized mobile-button"
+                  >
+                    <Download className="w-5 h-5" />
+                    Download
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleGenerate();
+                    }}
+                    disabled={isGenerating || !companyName.trim()}
+                    className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed mobile-optimized mobile-button"
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                    {isGenerating ? 'Generating...' : 'New Logo'}
+                  </button>
                 </div>
               </div>
             ) : (
@@ -497,25 +489,17 @@ export default function LogoGenerator({
               </div>
             </div>
 
-            <div className="space-y-4">
-              {isMobile && (
-                <div className="bg-blue-900/30 border border-blue-500/30 rounded-xl p-4 text-sm text-blue-200 text-center">
-                  <p className="font-medium mb-1">Save to Photos:</p>
-                  <p>Tap the button below, then tap and hold the image to save it to your photo library</p>
-                </div>
-              )}
-              <div className="flex justify-center gap-4">
-                <button
-                  onClick={() => {
-                    handleDownload();
-                    setShowPreview(false);
-                  }}
-                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors download-button mobile-optimized mobile-button"
-                >
-                  <Download className="w-5 h-5" />
-                  {isMobile ? 'Open to Save' : 'Download'}
-                </button>
-              </div>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => {
+                  handleDownload();
+                  setShowPreview(false);
+                }}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors download-button mobile-optimized mobile-button"
+              >
+                <Download className="w-5 h-5" />
+                Download
+              </button>
             </div>
           </div>
         </div>
