@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Coins, Plus, History, Zap } from 'lucide-react';
-import { creditService } from '../services/creditService';
+import { supabase } from '../services/supabase';
 
 interface CreditDisplayProps {
   currentUser?: any;
@@ -18,14 +18,39 @@ export const CreditDisplay: React.FC<CreditDisplayProps> = ({
   const [transactions, setTransactions] = useState<any[]>([]);
 
   useEffect(() => {
-    updateCredits();
+    if (currentUser?.id) {
+      updateCredits();
+    }
   }, [currentUser]);
 
-  const updateCredits = () => {
-    const balance = creditService.getCreditBalance(currentUser?.id);
-    const history = creditService.getCreditHistory(currentUser?.id);
+  const updateCredits = async () => {
+    if (!currentUser?.id) return;
+
+    const { data: apiKeyData } = await supabase
+      .from('user_api_keys')
+      .select('credit_balance')
+      .eq('user_id', currentUser.id)
+      .maybeSingle();
+
+    const balance = apiKeyData?.credit_balance ?? 0;
     setCredits(balance);
-    setTransactions(history);
+
+    const { data: transactionData } = await supabase
+      .from('credit_transactions')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (transactionData) {
+      setTransactions(transactionData.map(t => ({
+        id: t.id,
+        type: t.transaction_type,
+        amount: Math.abs(t.credits_amount),
+        description: t.description,
+        timestamp: t.created_at,
+      })));
+    }
   };
 
   const getCreditColor = () => {

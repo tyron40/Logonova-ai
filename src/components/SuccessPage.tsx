@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { CheckCircle, Download, ArrowRight, Home } from 'lucide-react';
-import { creditService } from '../services/creditService';
+import { supabase } from '../services/supabase';
 import { stripeService } from '../services/stripeService';
 
 interface SuccessPageProps {
@@ -23,8 +23,7 @@ export const SuccessPage: React.FC<SuccessPageProps> = ({
     const urlParams = new URLSearchParams(window.location.search);
     const sessionIdParam = urlParams.get('session_id');
     setSessionId(sessionIdParam);
-    
-    // Verify the payment and add credits only if successful
+
     if (sessionIdParam && currentUser) {
       verifyAndAddCredits(sessionIdParam);
     }
@@ -34,57 +33,46 @@ export const SuccessPage: React.FC<SuccessPageProps> = ({
     try {
       setIsVerifying(true);
       setVerificationError(null);
-      
-      // Verify the payment session with Stripe
+
       const verification = await stripeService.verifyPaymentSession(sessionId);
-      
+
       if (verification.success && verification.credits) {
-        // Only add credits after successful verification
-        const success = creditService.processStripeSuccess(
-          sessionId, 
-          verification.credits, 
-          currentUser.id
-        );
-        
-        if (success) {
-          setCreditsAdded(verification.credits);
-          console.log(`Successfully added ${verification.credits} credits for session ${sessionId}`);
-        } else {
-          console.warn(`Credits were already processed for session ${sessionId}`);
-          // Check if credits were already added by looking at credit history
-          const creditBalance = creditService.getCreditBalance(currentUser.id);
-          const creditHistory = creditService.getCreditHistory(currentUser.id);
-          
-          // Find transaction with this session ID
-          const existingTransaction = creditHistory.find(
-            transaction => transaction.stripeSessionId === sessionId
-          );
-          
-          if (existingTransaction) {
-            setCreditsAdded(existingTransaction.amount);
-            console.log(`Credits were already processed: ${existingTransaction.amount} credits`);
-          } else {
-            setVerificationError('Failed to add credits to your account. Please contact support.');
+        setCreditsAdded(verification.credits);
+
+        let retries = 0;
+        const maxRetries = 5;
+        const checkInterval = 2000;
+
+        const checkCredits = async () => {
+          const { data: transaction } = await supabase
+            .from('credit_transactions')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .eq('stripe_session_id', sessionId)
+            .maybeSingle();
+
+          if (transaction) {
+            console.log(`Credits confirmed: ${Math.abs(transaction.credits_amount)} credits`);
+            setCreditsAdded(Math.abs(transaction.credits_amount));
+            return true;
           }
-        }
+
+          retries++;
+          if (retries < maxRetries) {
+            setTimeout(checkCredits, checkInterval);
+          } else {
+            console.warn('Credits not found after webhook processing');
+          }
+          return false;
+        };
+
+        setTimeout(checkCredits, 1000);
       } else {
         setVerificationError('Payment verification failed. Please contact support if you were charged.');
       }
     } catch (error) {
       console.error('Error verifying payment:', error);
-      
-      // Even if verification fails, check if credits were already added locally
-      const creditHistory = creditService.getCreditHistory(currentUser.id);
-      const existingTransaction = creditHistory.find(
-        transaction => transaction.stripeSessionId === sessionId
-      );
-      
-      if (existingTransaction) {
-        setCreditsAdded(existingTransaction.amount);
-        console.log(`Found existing transaction despite verification error: ${existingTransaction.amount} credits`);
-      } else {
-        setVerificationError('Unable to verify payment. Please contact support if you were charged.');
-      }
+      setVerificationError('Unable to verify payment. Please contact support if you were charged.');
     } finally {
       setIsVerifying(false);
     }

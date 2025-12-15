@@ -3,7 +3,7 @@ import { Wand2, Download, Loader2, Sparkles, RefreshCw, Lightbulb, Eye, X } from
 import { openaiLogoService } from '../services/openaiApi';
 import { SubscriptionPlans } from './SubscriptionPlans';
 import { CreditDisplay } from './CreditDisplay';
-import { creditService } from '../services/creditService';
+import { supabase } from '../services/supabase';
 import { apiKeyManager } from '../services/apiKeyManager';
 
 interface LogoGeneratorProps {
@@ -27,13 +27,22 @@ export default function LogoGenerator({
   const [credits, setCredits] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
 
-  // Update credits when user changes
   React.useEffect(() => {
-    updateCredits();
+    if (currentUser?.id) {
+      updateCredits();
+    }
   }, [currentUser]);
 
-  const updateCredits = () => {
-    const balance = creditService.getCreditBalance(currentUser?.id);
+  const updateCredits = async () => {
+    if (!currentUser?.id) return;
+
+    const { data: apiKeyData } = await supabase
+      .from('user_api_keys')
+      .select('credit_balance')
+      .eq('user_id', currentUser.id)
+      .maybeSingle();
+
+    const balance = apiKeyData?.credit_balance ?? 0;
     setCredits(balance);
   };
 
@@ -82,29 +91,10 @@ export default function LogoGenerator({
       return;
     }
 
-    // Check credits first
-    const requiredCredits = 1; // 1 credit per logo generation
-    if (!creditService.hasEnoughCredits(requiredCredits, currentUser?.id)) {
-      setError(`Insufficient credits. You need ${requiredCredits} credit${requiredCredits > 1 ? 's' : ''} to generate a logo.`);
-      return;
-    }
     setError('');
     setIsGenerating(true);
 
     try {
-      // Deduct credits first
-      const deducted = creditService.deductCredits(
-        requiredCredits, 
-        `Logo generation for ${companyName.trim()}`, 
-        currentUser?.id
-      );
-      
-      if (!deducted) {
-        throw new Error('Failed to deduct credits');
-      }
-      
-      // Update credits display
-      updateCredits();
       const logoRequest = {
         companyName: companyName.trim(),
         description: description.trim() || 'Professional business',
@@ -116,10 +106,10 @@ export default function LogoGenerator({
 
       const logoUrl = await openaiLogoService.generateLogo(logoRequest);
       setLogoUrl(logoUrl);
-      setError(''); // Clear any previous errors
+      setError('');
+      updateCredits();
     } catch (error) {
       console.error('Error generating logo:', error);
-      // Provide more specific error handling
       let errorMessage = 'Failed to generate logo. Please try again.';
       if (error instanceof Error) {
         if (error.message.includes('fetch')) {
@@ -131,13 +121,6 @@ export default function LogoGenerator({
         }
       }
       setError(errorMessage);
-      
-      // Refund credits if logo generation failed after deduction
-      creditService.addCredits(
-        requiredCredits, 
-        `Refund for failed logo generation`, 
-        currentUser?.id
-      );
       updateCredits();
     } finally {
       setIsGenerating(false);
