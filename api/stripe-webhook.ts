@@ -108,6 +108,48 @@ async function handleEvent(event: Stripe.Event) {
           currency,
         } = stripeData as Stripe.Checkout.Session;
 
+        // Get the user_id from stripe_customers
+        const { data: customerData, error: customerError } = await supabase
+          .from('stripe_customers')
+          .select('user_id')
+          .eq('stripe_customer_id', customerId)
+          .single();
+
+        if (customerError || !customerData) {
+          console.error('Error finding user for customer:', customerError);
+          return;
+        }
+
+        const userId = customerData.user_id;
+
+        // Get the full session to access line items
+        const fullSession = await stripe.checkout.sessions.retrieve(checkout_session_id, {
+          expand: ['line_items'],
+        });
+
+        // Calculate credits based on price ID or amount
+        const priceId = fullSession.line_items?.data[0]?.price?.id;
+        const priceToCreditsMap: { [key: string]: number } = {
+          'price_1SXDQDLkzHXwN84vsj54I3Ly': 10,
+          'price_1SXDR5LkzHXwN84vNGKH0EJH': 25,
+          'price_1SXDSPLkzHXwN84vLo9kQlbE': 55,
+          'price_1SXDSoLkzHXwN84vSe77zkio': 150,
+        };
+
+        let credits = 0;
+        if (priceId && priceToCreditsMap[priceId]) {
+          credits = priceToCreditsMap[priceId];
+        } else {
+          // Fallback to amount-based calculation
+          const amountInDollars = (amount_total || 0) / 100;
+          if (amountInDollars >= 50) credits = 150;
+          else if (amountInDollars >= 20) credits = 55;
+          else if (amountInDollars >= 10) credits = 25;
+          else if (amountInDollars >= 5) credits = 10;
+          else credits = Math.floor(amountInDollars);
+        }
+
+        // Insert order
         const { error: orderError } = await supabase.from('stripe_orders').insert({
           checkout_session_id,
           payment_intent_id: payment_intent,
@@ -123,7 +165,33 @@ async function handleEvent(event: Stripe.Event) {
           console.error('Error inserting order:', orderError);
           return;
         }
-        console.info(`Successfully processed one-time payment for session: ${checkout_session_id}`);
+
+        // Add credits to user account
+        const { error: updateError } = await supabase.rpc('increment_credits', {
+          p_user_id: userId,
+          p_amount: credits,
+        });
+
+        if (updateError) {
+          console.error('Error adding credits:', updateError);
+          return;
+        }
+
+        // Create credit transaction record
+        const { error: transactionError } = await supabase.from('credit_transactions').insert({
+          user_id: userId,
+          transaction_type: 'purchase',
+          credits_amount: credits,
+          stripe_payment_intent_id: payment_intent,
+          stripe_session_id: checkout_session_id,
+          description: `Purchased ${credits} credits for $${amountInDollars}`,
+        });
+
+        if (transactionError) {
+          console.error('Error creating credit transaction:', transactionError);
+        }
+
+        console.info(`Successfully processed payment and added ${credits} credits for session: ${checkout_session_id}`);
       } catch (error) {
         console.error('Error processing one-time payment:', error);
       }
