@@ -38,38 +38,28 @@ function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        console.log('Starting app initialization...');
-        
-       // Initialize user variable
-       let user = null;
-       
+        let user = null;
+
         // Check if Supabase is properly configured
         if (!supabase) {
-          console.warn('⚠️ Supabase not configured - running in local-only mode');
           setCurrentUser(null);
           setInitError(null);
         } else {
           // Only check current user if Supabase is available
-          console.log('🔍 Checking current user...');
-         user = await supabaseService.getCurrentUser();
-          console.log('Current user:', user?.id || 'none');
+          user = await supabaseService.getCurrentUser();
           setCurrentUser(user);
         }
 
         // Initialize API key manager
-        console.log('Initializing API key manager...');
         await apiKeyManager.initializeForUser(user?.id || null);
 
         // Check if we have API keys
         const hasOpenAIKey = apiKeyManager.hasApiKey('openai');
-        console.log('Has OpenAI API key from .env:', hasOpenAIKey);
         setHasApiKey(hasOpenAIKey);
-
-        console.log('App initialization complete');
       } catch (error) {
         console.error('Error initializing app:', error);
         setInitError('Failed to initialize app. Please refresh the page.');
-        
+
         // Fallback initialization
         try {
           await apiKeyManager.initializeForUser(null);
@@ -87,29 +77,27 @@ function App() {
 
     // Listen for auth changes
     let subscription: any = null;
-    
+
     if (supabase) {
       const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
         const user = session?.user || null;
-        
+
         // Clear stale session if no user found to prevent refresh token errors
         if (!user) {
           await supabaseService.signOut();
         }
-        
+
         setCurrentUser(user);
-        
+
         // Reinitialize API key manager
         try {
           await apiKeyManager.initializeForUser(user?.id || null);
           setHasApiKey(apiKeyManager.hasApiKey('openai'));
         } catch (error) {
-          console.error('Error handling auth change:', error);
           setHasApiKey(apiKeyManager.hasApiKey('openai'));
         }
       });
-      
+
       subscription = data.subscription;
     }
 

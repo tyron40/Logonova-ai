@@ -44,10 +44,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onStartGenerating, onViewPla
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <h1 className="text-5xl md:text-7xl font-bold text-white mb-8 leading-tight">
             Create Amazing
-            <span className="block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
             <span className="block bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 bg-clip-text text-transparent">
               Logos with AI
-            </span>
             </span>
           </h1>
           

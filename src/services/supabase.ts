@@ -3,13 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-console.log('Environment check:', {
-  hasUrl: !!supabaseUrl,
-  hasKey: !!supabaseAnonKey,
-  urlValue: supabaseUrl,
-  keyLength: supabaseAnonKey?.length
-});
-
 // Enhanced validation functions
 function isValidUrl(string: string): boolean {
   try {
@@ -65,14 +58,7 @@ export const supabase = envValidation.isValid ?
   }) : null;
 
 if (!envValidation.isValid) {
-  console.error('❌ Supabase Configuration Errors:');
-  envValidation.errors.forEach(error => console.error(`  - ${error}`));
-  console.warn('⚠️ Supabase not configured - authentication features will be disabled');
-  console.warn('To enable authentication:');
-  console.warn('1. Create a .env file in your project root');
-  console.warn('2. Add: VITE_SUPABASE_URL=https://your-project.supabase.co');
-  console.warn('3. Add: VITE_SUPABASE_ANON_KEY=your-anon-key');
-  console.warn('4. Restart the development server');
+  console.warn('Supabase not configured - authentication features will be disabled');
 }
 export class SupabaseService {
   private static instance: SupabaseService;
@@ -92,9 +78,8 @@ export class SupabaseService {
     if (!this.isAvailable()) {
       throw new Error('Supabase not configured. Please check your environment variables and restart the server.');
     }
-    
+
     try {
-      console.log('🔧 Supabase signUp called for:', email);
       const { data, error } = await supabase!.auth.signUp({
         email,
         password,
@@ -104,11 +89,9 @@ export class SupabaseService {
           }
         }
       });
-      
-      console.log('📤 SignUp response:', { data, error });
+
       return { data, error };
     } catch (error) {
-      console.error('SignUp error:', error);
       if (error instanceof Error && error.message.includes('Failed to fetch')) {
         throw new Error('Cannot connect to Supabase. Please check your internet connection and Supabase URL.');
       }
@@ -120,18 +103,15 @@ export class SupabaseService {
     if (!this.isAvailable()) {
       throw new Error('Supabase not configured. Please check your environment variables and restart the server.');
     }
-    
+
     try {
-      console.log('🔧 Supabase signIn called for:', email);
       const { data, error } = await supabase!.auth.signInWithPassword({
         email,
         password,
       });
-      
-      console.log('📤 SignIn response:', { data, error });
+
       return { data, error };
     } catch (error) {
-      console.error('SignIn error:', error);
       if (error instanceof Error && error.message.includes('Failed to fetch')) {
         throw new Error('Cannot connect to Supabase. Please check your internet connection and Supabase URL.');
       }
@@ -157,12 +137,20 @@ export class SupabaseService {
     if (!this.isAvailable()) {
       return null;
     }
-    
+
     try {
-      const { data: { user } } = await supabase!.auth.getUser();
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      );
+
+      const userPromise = supabase!.auth.getUser();
+
+      const { data: { user } } = await Promise.race([userPromise, timeoutPromise]);
       return user;
     } catch (error) {
-      console.warn('Error getting current user:', error);
+      if (error instanceof Error && error.message === 'Request timeout') {
+        console.warn('getCurrentUser timed out, continuing without user');
+      }
       return null;
     }
   }
@@ -179,17 +167,14 @@ export class SupabaseService {
     if (!this.isAvailable()) {
       throw new Error('Supabase not configured. Please check your environment variables and restart the server.');
     }
-    
+
     try {
-      console.log('🔧 Supabase updatePassword called');
       const { data, error } = await supabase!.auth.updateUser({
         password: newPassword
       });
-      
-      console.log('📤 UpdatePassword response:', { data, error });
+
       return { data, error };
     } catch (error) {
-      console.error('UpdatePassword error:', error);
       if (error instanceof Error && error.message.includes('Failed to fetch')) {
         throw new Error('Cannot connect to Supabase. Please check your internet connection and Supabase URL.');
       }
@@ -201,36 +186,23 @@ export class SupabaseService {
     if (!this.isAvailable()) {
       throw new Error('Supabase not configured. Please check your environment variables and restart the server.');
     }
-    
+
     try {
-      console.log('🔧 Supabase deleteAccount called');
-      
       // Get current user first
       const { data: { user } } = await supabase!.auth.getUser();
-      
+
       if (!user) {
         throw new Error('No authenticated user found');
       }
-      
-      // Note: In production, you might want to soft delete or clean up user data first
-      // For now, we'll just delete the auth user, which should cascade delete related data
-      // due to foreign key constraints in the database
-      
+
       const { error } = await supabase!.auth.admin.deleteUser(user.id);
-      
+
       if (error) {
-        // If admin delete fails (might not have admin access), try regular account deletion
-        console.warn('Admin delete failed, trying user delete:', error);
-        
-        // There's no direct user delete API, so we'll have to use a function or handle it differently
-        // For now, we'll throw an error asking them to contact support
         throw new Error('Account deletion requires administrator access. Please contact support to delete your account.');
       }
-      
-      console.log('✅ Account deleted successfully');
+
       return { error: null };
     } catch (error) {
-      console.error('DeleteAccount error:', error);
       if (error instanceof Error && error.message.includes('Failed to fetch')) {
         throw new Error('Cannot connect to Supabase. Please check your internet connection and Supabase URL.');
       }

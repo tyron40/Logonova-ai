@@ -21,27 +21,25 @@ export class ApiKeyManager {
   }
 
   async initializeForUser(userId: string | null) {
-    console.log('Initializing API key manager for user:', userId);
     this.currentUserId = userId;
     this.cachedKeys = {};
-    
+
     // Load environment keys first (highest priority)
     this.loadEnvironmentKeysAsFallback();
-    
+
     // Load user-specific keys from localStorage
     this.loadLocalApiKeys();
-    
+
     // Load from Supabase if available and user is logged in
     if (userId && supabaseService.isAvailable()) {
       try {
         await this.loadSupabaseApiKeys(userId);
       } catch (error) {
-        console.warn('Failed to load Supabase API keys:', error);
+        // Silently fail
       }
     }
-    
+
     this.initialized = true;
-    console.log('API key manager initialized. Available keys:', Object.keys(this.cachedKeys));
   }
 
   private loadEnvironmentKeysAsFallback() {
@@ -57,7 +55,6 @@ export class ApiKeyManager {
     Object.entries(envKeys).forEach(([key, value]) => {
       if (value && value.trim()) {
         this.cachedKeys[key as keyof ApiKeys] = value.trim();
-        console.log(`Loaded ${key} API key from environment`);
       }
     });
   }
@@ -72,12 +69,11 @@ export class ApiKeyManager {
         Object.entries(localKeys).forEach(([key, value]) => {
           if (value && !this.cachedKeys[key as keyof ApiKeys]) {
             this.cachedKeys[key as keyof ApiKeys] = value as string;
-            console.log(`Loaded ${key} API key from localStorage`);
           }
         });
       }
     } catch (error) {
-      console.warn('Failed to load local API keys:', error);
+      // Silently fail
     }
   }
 
@@ -91,31 +87,24 @@ export class ApiKeyManager {
         .eq('user_id', userId)
         .maybeSingle();
 
-      if (error) {
-        console.warn('Failed to load Supabase API keys:', error);
-        return;
-      }
+      if (error) return;
 
       if (data) {
         if (data.openai_api_key && !this.cachedKeys.openai) {
           this.cachedKeys.openai = data.openai_api_key;
-          console.log('Loaded openai API key from Supabase');
         }
         if (data.replicate_api_key && !this.cachedKeys.replicate) {
           this.cachedKeys.replicate = data.replicate_api_key;
-          console.log('Loaded replicate API key from Supabase');
         }
         if (data.gemini_api_key && !this.cachedKeys.gemini) {
           this.cachedKeys.gemini = data.gemini_api_key;
-          console.log('Loaded gemini API key from Supabase');
         }
         if (data.hugging_face_api_key && !this.cachedKeys.huggingFace) {
           this.cachedKeys.huggingFace = data.hugging_face_api_key;
-          console.log('Loaded huggingFace API key from Supabase');
         }
       }
     } catch (error) {
-      console.warn('Failed to load Supabase API keys:', error);
+      // Silently fail
     }
   }
 
@@ -146,9 +135,8 @@ export class ApiKeyManager {
       const storedKeys = currentStored ? JSON.parse(currentStored) : {};
       storedKeys[keyType] = apiKey.trim();
       localStorage.setItem(storageKey, JSON.stringify(storedKeys));
-      console.log(`Saved ${keyType} API key to localStorage`);
     } catch (error) {
-      console.warn(`Failed to save ${keyType} API key to localStorage:`, error);
+      // Silently fail
     }
 
     // Save to Supabase if available and user is logged in
@@ -156,7 +144,7 @@ export class ApiKeyManager {
       try {
         await this.storeApiKeyToSupabase(keyType, apiKey.trim());
       } catch (error) {
-        console.warn(`Failed to save ${keyType} API key to Supabase:`, error);
+        // Silently fail
       }
     }
   }
@@ -171,14 +159,11 @@ export class ApiKeyManager {
       };
 
       const columnName = columnMap[keyType];
-      if (!columnName) {
-        console.warn(`Unknown key type: ${keyType}`);
-        return;
-      }
+      if (!columnName) return;
 
       if (!supabase) return;
 
-      const { error } = await supabase
+      await supabase
         .from('user_api_keys')
         .upsert({
           user_id: this.currentUserId,
@@ -187,14 +172,8 @@ export class ApiKeyManager {
         }, {
           onConflict: 'user_id'
         });
-
-      if (error) {
-        console.warn(`Failed to save ${keyType} API key to Supabase:`, error);
-      } else {
-        console.log(`Saved ${keyType} API key to Supabase`);
-      }
     } catch (error) {
-      console.warn(`Failed to save ${keyType} API key to Supabase:`, error);
+      // Silently fail
     }
   }
 
@@ -217,19 +196,19 @@ export class ApiKeyManager {
 
   async clearApiKeys() {
     this.cachedKeys = {};
-    
+
     // Clear from localStorage
     try {
       const storageKey = this.currentUserId ? `api-keys-${this.currentUserId}` : 'api-keys-guest';
       localStorage.removeItem(storageKey);
     } catch (error) {
-      console.warn('Failed to clear localStorage API keys:', error);
+      // Silently fail
     }
 
     // Clear from Supabase if available and user is logged in
     if (this.currentUserId && supabaseService.isAvailable() && supabase) {
       try {
-        const { error} = await supabase
+        await supabase
           .from('user_api_keys')
           .update({
             openai_api_key: null,
@@ -239,14 +218,8 @@ export class ApiKeyManager {
             updated_at: new Date().toISOString()
           })
           .eq('user_id', this.currentUserId);
-
-        if (error) {
-          console.warn('Failed to clear Supabase API keys:', error);
-        } else {
-          console.log('Cleared API keys from Supabase');
-        }
       } catch (error) {
-        console.warn('Failed to clear Supabase API keys:', error);
+        // Silently fail
       }
     }
   }
