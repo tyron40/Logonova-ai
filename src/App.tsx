@@ -74,7 +74,6 @@ function App() {
         try {
           await apiKeyManager.initializeForUser(null);
           setHasApiKey(apiKeyManager.hasApiKey('openai'));
-          loadLocalLogos();
         } catch (fallbackError) {
           console.error('Fallback initialization failed:', fallbackError);
           setInitError('App initialization failed. Please refresh the page.');
