@@ -76,7 +76,7 @@ async function handleEvent(event: Stripe.Event) {
     return;
   }
 
-  if (event.type === 'payment_intent.succeeded' && event.data.object.invoice === null) {
+  if (event.type === 'payment_intent.succeeded' && (event.data.object as Stripe.PaymentIntent).invoice === null) {
     return;
   }
 
@@ -136,12 +136,12 @@ async function handleEvent(event: Stripe.Event) {
           'price_1SXDSoLkzHXwN84vSe77zkio': 150,
         };
 
+        const amountInDollars = (amount_total || 0) / 100;
         let credits = 0;
         if (priceId && priceToCreditsMap[priceId]) {
           credits = priceToCreditsMap[priceId];
         } else {
           // Fallback to amount-based calculation
-          const amountInDollars = (amount_total || 0) / 100;
           if (amountInDollars >= 50) credits = 150;
           else if (amountInDollars >= 20) credits = 55;
           else if (amountInDollars >= 10) credits = 25;
@@ -226,6 +226,7 @@ async function syncCustomerFromStripe(customerId: string) {
         console.error('Error updating subscription status:', noSubError);
         throw new Error('Failed to update subscription status in database');
       }
+      return;
     }
 
     const subscription = subscriptions.data[0];
@@ -237,8 +238,8 @@ async function syncCustomerFromStripe(customerId: string) {
           customer_id: customerId,
           subscription_id: subscription.id,
           price_id: subscription.items.data[0].price.id,
-          current_period_start: subscription.current_period_start,
-          current_period_end: subscription.current_period_end,
+          current_period_start: subscription.current_period_start as number,
+          current_period_end: subscription.current_period_end as number,
           cancel_at_period_end: subscription.cancel_at_period_end,
           ...(subscription.default_payment_method && typeof subscription.default_payment_method !== 'string'
             ? {
