@@ -49,16 +49,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
 
     try {
       let result;
-      
+
       if (isSignUp) {
-        console.log('📝 Attempting sign up...');
         result = await supabaseService.signUp(email, password, username.trim());
         if (result.error) {
-          console.error('❌ Sign up error:', result.error);
           throw result.error;
         }
-        console.log('✅ Sign up successful:', result.data);
-        
+
         // Check if email confirmation is disabled
         if (result.data.user && !result.data.user.email_confirmed_at) {
           // Give new user credits only on successful account creation
@@ -68,21 +65,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
           setSuccess('Account created successfully! Please check your email to verify your account.');
         }
       } else {
-        console.log('🔑 Attempting sign in...');
         result = await supabaseService.signIn(email, password);
         if (result.error) {
-          console.error('❌ Sign in error:', result.error);
           throw result.error;
         }
-        
-        console.log('✅ Sign in successful:', result.data);
-        if (result.data.user) {
+
+        if (result.data.user && result.data.session) {
+          // Wait a moment to ensure session is persisted to storage
+          await new Promise(resolve => setTimeout(resolve, 100));
           onAuthSuccess(result.data.user);
           onClose();
+        } else if (!result.data.session) {
+          throw new Error('Sign in succeeded but session was not created. Please try again or clear your browser cache.');
+        } else {
+          throw new Error('Sign in succeeded but user data is missing. Please try again.');
         }
       }
     } catch (error: any) {
-      console.error('🚨 Authentication error:', error);
       
       // Provide more helpful error messages
       let errorMessage = error.message || 'An error occurred';

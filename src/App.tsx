@@ -82,19 +82,22 @@ function App() {
       const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
         const user = session?.user || null;
 
-        // Clear stale session if no user found to prevent refresh token errors
-        if (!user) {
+        // Only sign out on explicit SIGNED_OUT event
+        // Don't sign out on other events where user might be null temporarily
+        if (event === 'SIGNED_OUT') {
           await supabaseService.signOut();
         }
 
         setCurrentUser(user);
 
-        // Reinitialize API key manager
-        try {
-          await apiKeyManager.initializeForUser(user?.id || null);
-          setHasApiKey(apiKeyManager.hasApiKey('openai'));
-        } catch (error) {
-          setHasApiKey(apiKeyManager.hasApiKey('openai'));
+        // Reinitialize API key manager on meaningful auth state changes
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
+          try {
+            await apiKeyManager.initializeForUser(user?.id || null);
+            setHasApiKey(apiKeyManager.hasApiKey('openai'));
+          } catch (error) {
+            setHasApiKey(apiKeyManager.hasApiKey('openai'));
+          }
         }
       });
 

@@ -54,6 +54,12 @@ export const supabase = envValidation.isValid ?
       detectSessionInUrl: true,
       storageKey: 'logoai-auth-token',
       storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      flowType: 'implicit',
+    },
+    global: {
+      headers: {
+        'X-Client-Info': 'logoai-web',
+      },
     },
   }) : null;
 
@@ -139,18 +145,21 @@ export class SupabaseService {
     }
 
     try {
+      // First try to get session from storage (fast, works offline)
+      const { data: { session } } = await supabase!.auth.getSession();
+      if (session?.user) {
+        return session.user;
+      }
+
+      // If no session in storage, try getUser with longer timeout for mobile
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Request timeout')), 10000)
+        setTimeout(() => reject(new Error('Request timeout')), 15000)
       );
 
       const userPromise = supabase!.auth.getUser();
-
       const { data: { user } } = await Promise.race([userPromise, timeoutPromise]);
       return user;
     } catch (error) {
-      if (error instanceof Error && error.message === 'Request timeout') {
-        console.warn('getCurrentUser timed out, continuing without user');
-      }
       return null;
     }
   }
