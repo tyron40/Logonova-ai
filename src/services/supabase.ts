@@ -145,21 +145,11 @@ export class SupabaseService {
     }
 
     try {
-      // First try to get session from storage (fast, works offline)
+      // Get session from storage (fast, works offline)
       const { data: { session } } = await supabase!.auth.getSession();
-      if (session?.user) {
-        return session.user;
-      }
-
-      // If no session in storage, try getUser with longer timeout for mobile
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Request timeout')), 15000)
-      );
-
-      const userPromise = supabase!.auth.getUser();
-      const { data: { user } } = await Promise.race([userPromise, timeoutPromise]);
-      return user;
+      return session?.user || null;
     } catch (error) {
+      console.error('Error getting current user:', error);
       return null;
     }
   }

@@ -37,38 +37,42 @@ function App() {
   // Initialize app and check authentication
   useEffect(() => {
     const initializeApp = async () => {
+      // Set a maximum timeout for initialization (5 seconds)
+      const initTimeout = setTimeout(() => {
+        console.warn('Initialization timeout - forcing app to load');
+        setIsLoading(false);
+      }, 5000);
+
       try {
         let user = null;
 
         // Check if Supabase is properly configured
-        if (!supabase) {
-          setCurrentUser(null);
-          setInitError(null);
-        } else {
-          // Only check current user if Supabase is available
-          user = await supabaseService.getCurrentUser();
-          setCurrentUser(user);
+        if (supabase) {
+          try {
+            // Only check current user if Supabase is available
+            user = await supabaseService.getCurrentUser();
+            setCurrentUser(user);
+          } catch (userError) {
+            console.warn('Could not fetch user, continuing without auth:', userError);
+          }
         }
 
         // Initialize API key manager
-        await apiKeyManager.initializeForUser(user?.id || null);
-
-        // Check if we have API keys
-        const hasOpenAIKey = apiKeyManager.hasApiKey('openai');
-        setHasApiKey(hasOpenAIKey);
+        try {
+          await apiKeyManager.initializeForUser(user?.id || null);
+          const hasOpenAIKey = apiKeyManager.hasApiKey('openai');
+          setHasApiKey(hasOpenAIKey);
+        } catch (apiKeyError) {
+          console.warn('API key initialization failed, continuing:', apiKeyError);
+          setHasApiKey(false);
+        }
       } catch (error) {
         console.error('Error initializing app:', error);
-        setInitError('Failed to initialize app. Please refresh the page.');
-
-        // Fallback initialization
-        try {
-          await apiKeyManager.initializeForUser(null);
-          setHasApiKey(apiKeyManager.hasApiKey('openai'));
-        } catch (fallbackError) {
-          console.error('Fallback initialization failed:', fallbackError);
-          setInitError('App initialization failed. Please refresh the page.');
-        }
+        // Don't block the app from loading, just log the error
+        setHasApiKey(false);
       } finally {
+        // Clear the timeout and always set loading to false
+        clearTimeout(initTimeout);
         setIsLoading(false);
       }
     };
@@ -199,25 +203,6 @@ function App() {
     );
   }
 
-  if (initError && !apiKeyManager.isInitialized()) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-white text-2xl">⚠️</span>
-          </div>
-          <h3 className="text-xl font-semibold text-white mb-2">Initialization Failed</h3>
-          <p className="text-gray-400 mb-4">{initError}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            Refresh Page
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-black">
