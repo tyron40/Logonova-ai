@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { X, Mail, Lock, User, LogIn, UserPlus, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabaseService } from '../services/supabase';
-import { creditService } from '../services/creditService';
+import type { User as UserType } from '../types';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAuthSuccess: (user: any) => void;
+  onAuthSuccess: (user: UserType) => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess }) => {
@@ -58,8 +58,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
 
         // Check if email confirmation is disabled
         if (result.data.user && !result.data.user.email_confirmed_at) {
-          // Give new user credits only on successful account creation
-          creditService.giveNewUserCredits(result.data.user.id);
+          // Database trigger automatically gives 100 credits to new users
           setSuccess('Account created successfully! You can now sign in.');
         } else {
           setSuccess('Account created successfully! Please check your email to verify your account.');
@@ -157,23 +156,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
             <div className="text-sm text-blue-300">
               <p className="font-semibold mb-2">🚀 Account Benefits</p>
               <ul className="space-y-1 text-blue-300/80">
-                <li>• User-specific logo storage</li>
-                <li>• Logo history & management</li>
+                <li>• Get 100 free credits on signup</li>
+                <li>• Save and manage your logos</li>
+                <li>• Access logo history</li>
                 <li>• Personalized experience</li>
               </ul>
-              <p>Supabase: {supabaseService ? '✅ Connected' : '⚠️ Not configured (local mode)'}</p>
             </div>
           </div>
-
-          {/* Debug Info */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-400/30 rounded-lg">
-              <div className="text-xs text-yellow-300">
-                <p className="font-semibold mb-1">🐛 Debug Info</p>
-                <p>Supabase: {supabaseService ? '✅ Connected' : '❌ Not configured'}</p>
-              </div>
-            </div>
-          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">

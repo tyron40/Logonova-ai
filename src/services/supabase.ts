@@ -155,9 +155,27 @@ export class SupabaseService {
   }
 
   // API Keys Management
-  async getUserApiKeys(userId: string): Promise<UserApiKeys | null> {
+  async getUserApiKeys(userId: string): Promise<any | null> {
     if (!this.isAvailable()) {
       console.warn('Supabase not available for getUserApiKeys');
+      return null;
+    }
+
+    try {
+      const { data, error } = await supabase!
+        .from('user_api_keys')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching user API keys:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error in getUserApiKeys:', error);
       return null;
     }
   }

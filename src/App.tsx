@@ -11,7 +11,8 @@ import { AccountSettings } from './components/AccountSettings';
 import { stripeService } from './services/stripeService';
 import { apiKeyManager } from './services/apiKeyManager';
 import { supabaseService, supabase } from './services/supabase';
-import { creditService } from './services/creditService';
+import type { User, Subscription } from './types';
+
 function App() {
   const [currentView, setCurrentView] = useState<'home' | 'generator' | 'plans' | 'success'>('home');
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
@@ -19,10 +20,10 @@ function App() {
   const [showCreditModal, setShowCreditModal] = useState(false);
   const [showAccountSettings, setShowAccountSettings] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [initError, setInitError] = useState<string | null>(null);
-  const [userSubscription, setUserSubscription] = useState<any>(null);
+  const [userSubscription, setUserSubscription] = useState<Subscription | null>(null);
 
   // Check for success page on load
   useEffect(() => {
@@ -133,15 +134,12 @@ function App() {
     setShowApiKeyModal(true);
   };
 
-  const handleAuthSuccess = async (user: any) => {
+  const handleAuthSuccess = async (user: User) => {
     setCurrentUser(user);
     setShowAuthModal(false);
 
-    // Migrate guest credits to user account if any exist
-    creditService.migrateUserCredits('guest', user.id);
-
-    // Give new user credits only if this is their first time
-    creditService.giveNewUserCredits(user.id);
+    // Database trigger automatically gives 100 credits to new users
+    // No need for manual credit management here
 
     setHasApiKey(apiKeyManager.hasApiKey('openai'));
   };
