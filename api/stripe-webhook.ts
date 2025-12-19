@@ -76,7 +76,7 @@ async function handleEvent(event: Stripe.Event) {
     return;
   }
 
-  if (event.type === 'payment_intent.succeeded' && (event.data.object as Stripe.PaymentIntent).invoice === null) {
+  if (event.type === 'payment_intent.succeeded' && (event.data.object as any).invoice === null) {
     return;
   }
 
@@ -238,8 +238,8 @@ async function syncCustomerFromStripe(customerId: string) {
           customer_id: customerId,
           subscription_id: subscription.id,
           price_id: subscription.items.data[0].price.id,
-          current_period_start: subscription.current_period_start as number,
-          current_period_end: subscription.current_period_end as number,
+          current_period_start: (subscription as any).current_period_start as number,
+          current_period_end: (subscription as any).current_period_end as number,
           cancel_at_period_end: subscription.cancel_at_period_end,
           ...(subscription.default_payment_method && typeof subscription.default_payment_method !== 'string'
             ? {
