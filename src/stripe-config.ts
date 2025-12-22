@@ -12,8 +12,8 @@ export interface StripeProduct {
 
 export const stripeProducts: StripeProduct[] = [
   {
-    id: 'prod_TUBndlMGxkWTop',
-    priceId: 'price_1SXDQDLkzHXwN84vsj54I3Ly',
+    id: 'prod_TeLcVEKzMKRGiP',
+    priceId: 'price_1Sh2v2LkzHXwN84vL4NqUfO7',
     name: '10 Credits',
     description: 'Perfect for trying out our service',
     credits: 10,
@@ -23,8 +23,8 @@ export const stripeProducts: StripeProduct[] = [
     popular: false
   },
   {
-    id: 'prod_TUBoIGsyoITwlf',
-    priceId: 'price_1SXDR5LkzHXwN84vNGKH0EJH',
+    id: 'prod_TeLdw8nszDOeSB',
+    priceId: 'price_1Sh2w9LkzHXwN84v8ZD66X1d',
     name: '25 Credits',
     description: 'Great for small projects',
     credits: 25,
@@ -34,8 +34,8 @@ export const stripeProducts: StripeProduct[] = [
     popular: false
   },
   {
-    id: 'prod_TUBqsv9uKjI2jb',
-    priceId: 'price_1SXDSPLkzHXwN84vLo9kQlbE',
+    id: 'prod_TeLeLMpbgCub5j',
+    priceId: 'price_1Sh2wuLkzHXwN84vp1Og2GmI',
     name: '55 Credits',
     description: 'Most popular choice for regular users',
     credits: 55,
@@ -45,8 +45,8 @@ export const stripeProducts: StripeProduct[] = [
     popular: true
   },
   {
-    id: 'prod_TUBqmCe1jbZeQA',
-    priceId: 'price_1SXDSoLkzHXwN84vSe77zkio',
+    id: 'prod_TeLeQvEcL6Mvx6',
+    priceId: 'price_1Sh2xdLkzHXwN84vuD2S6iF6',
     name: '150 Credits',
     description: 'Best value for power users',
     credits: 150,
