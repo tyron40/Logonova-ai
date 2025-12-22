@@ -42,7 +42,7 @@ export class StripeService {
     }
 
     const { data: { session } } = await supabase.auth.getSession();
-    
+
     if (!session?.access_token) {
       throw new Error('User not authenticated');
     }
@@ -52,26 +52,46 @@ export class StripeService {
     const cancelUrl = `${baseUrl}/generator`;
 
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
-    const response = await fetch(`${apiBaseUrl}/api/stripe-checkout`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({
-        price_id: priceId,
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-        mode,
-      }),
-    });
+    const apiUrl = `${apiBaseUrl}/api/stripe-checkout`;
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to create checkout session');
+    console.log('Creating checkout session:', { priceId, mode, apiUrl });
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          price_id: priceId,
+          success_url: successUrl,
+          cancel_url: cancelUrl,
+          mode,
+        }),
+      });
+
+      console.log('Checkout response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Checkout error response:', errorText);
+
+        try {
+          const error = JSON.parse(errorText);
+          throw new Error(error.error || 'Failed to create checkout session');
+        } catch {
+          throw new Error(`Failed to create checkout session: ${response.status} ${response.statusText}`);
+        }
+      }
+
+      const result = await response.json();
+      console.log('Checkout session created:', result);
+      return result;
+    } catch (error) {
+      console.error('Fetch error:', error);
+      throw error;
     }
-
-    return await response.json();
   }
 
   async getUserSubscription(): Promise<StripeSubscription | null> {

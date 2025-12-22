@@ -25,9 +25,9 @@ export const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
       await stripeService.redirectToCheckout(priceId, 'payment');
     } catch (error) {
       console.error('Error starting checkout:', error);
-      alert('Failed to start checkout. Please try again.');
-    } finally {
       setLoadingPriceId(null);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start checkout. Please try again.';
+      alert(errorMessage);
     }
   };
 
