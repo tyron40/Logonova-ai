@@ -18,11 +18,11 @@ export const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubscribe = async (priceId: string) => {
+  const handlePurchase = async (priceId: string) => {
     setLoadingPriceId(priceId);
-    
+
     try {
-      await stripeService.redirectToCheckout(priceId, 'subscription');
+      await stripeService.redirectToCheckout(priceId, 'payment');
     } catch (error) {
       console.error('Error starting checkout:', error);
       alert('Failed to start checkout. Please try again.');
@@ -58,8 +58,8 @@ export const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
                 <Coins className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="text-2xl font-bold text-white">Subscribe for Credits</h3>
-                <p className="text-gray-400">Choose a subscription plan</p>
+                <h3 className="text-2xl font-bold text-white">Purchase Credits</h3>
+                <p className="text-gray-400">Choose a credit package</p>
               </div>
             </div>
             <button
@@ -113,9 +113,8 @@ export const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
                   <h4 className="text-xl font-bold text-white mb-2">{product.name}</h4>
                   <div className="text-3xl font-bold text-white mb-1">
                     ${product.price}
-                    <span className="text-sm text-gray-400 font-normal">/month</span>
                   </div>
-                  <div className="text-gray-400">{product.credits} credits per month</div>
+                  <div className="text-gray-400">{product.credits} credits</div>
                 </div>
 
                 <div className="space-y-3 mb-6">
@@ -140,7 +139,7 @@ export const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
                 </div>
 
                 <button
-                  onClick={() => handleSubscribe(product.priceId)}
+                  onClick={() => handlePurchase(product.priceId)}
                   disabled={isLoading}
                   className={`w-full flex items-center justify-center space-x-2 bg-gradient-to-r ${gradient} text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mobile-optimized mobile-button`}
                 >
@@ -150,7 +149,7 @@ export const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
                       <span>Processing...</span>
                     </>
                   ) : (
-                    <span>Subscribe Now</span>
+                    <span>Purchase Now</span>
                   )}
                 </button>
               </div>
@@ -167,9 +166,9 @@ export const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
               <div>
                 <h4 className="font-medium text-white mb-2">Secure Payment with Stripe</h4>
                 <ul className="text-sm text-gray-400 space-y-1">
-                  <li>• Secure subscription processing</li>
-                  <li>• Monthly credits automatically added</li>
-                  <li>• Cancel anytime from your account</li>
+                  <li>• Secure one-time payment processing</li>
+                  <li>• Credits added instantly after payment</li>
+                  <li>• No recurring charges or subscriptions</li>
                   <li>• SSL encrypted and PCI compliant</li>
                 </ul>
               </div>
