@@ -85,13 +85,8 @@ function App() {
 
     if (supabase) {
       const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         const user = session?.user || null;
-
-        // Only sign out on explicit SIGNED_OUT event
-        // Don't sign out on other events where user might be null temporarily
-        if (event === 'SIGNED_OUT') {
-          await supabaseService.signOut();
-        }
 
         setCurrentUser(user);
 
@@ -146,10 +141,22 @@ function App() {
 
   const handleSignOut = async () => {
     try {
-      await supabaseService.signOut();
+      console.log('Signing out user...');
+      const { error } = await supabaseService.signOut();
+
+      if (error) {
+        console.error('Sign out error:', error);
+        alert('Failed to sign out. Please try again.');
+        return;
+      }
+
       setCurrentUser(null);
+      apiKeyManager.initializeForUser(null);
+      setHasApiKey(false);
+      console.log('User signed out successfully');
     } catch (error) {
       console.error('Error signing out:', error);
+      alert('An error occurred while signing out. Please try again.');
     }
   };
 
