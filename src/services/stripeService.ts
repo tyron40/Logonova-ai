@@ -56,6 +56,9 @@ export class StripeService {
 
     console.log('Creating checkout session:', { priceId, mode, apiUrl });
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     try {
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -69,7 +72,10 @@ export class StripeService {
           cancel_url: cancelUrl,
           mode,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       console.log('Checkout response status:', response.status);
 
@@ -80,7 +86,7 @@ export class StripeService {
         try {
           const error = JSON.parse(errorText);
           throw new Error(error.error || 'Failed to create checkout session');
-        } catch {
+        } catch (parseError) {
           throw new Error(`Failed to create checkout session: ${response.status} ${response.statusText}`);
         }
       }
@@ -89,8 +95,17 @@ export class StripeService {
       console.log('Checkout session created:', result);
       return result;
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('Fetch error:', error);
-      throw error;
+
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error('Request timed out. Please check your internet connection and try again.');
+        }
+        throw error;
+      }
+
+      throw new Error('An unexpected error occurred. Please try again.');
     }
   }
 
@@ -149,17 +164,12 @@ export class StripeService {
   }
 
   async redirectToCheckout(priceId: string, mode: 'payment' | 'subscription' = 'subscription'): Promise<void> {
-    try {
-      const { url } = await this.createCheckoutSession(priceId, mode);
-      
-      if (url) {
-        window.location.href = url;
-      } else {
-        throw new Error('No checkout URL received');
-      }
-    } catch (error) {
-      console.error('Error redirecting to checkout:', error);
-      throw error;
+    const { url } = await this.createCheckoutSession(priceId, mode);
+
+    if (url) {
+      window.location.href = url;
+    } else {
+      throw new Error('No checkout URL received from server');
     }
   }
 
