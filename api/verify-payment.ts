@@ -73,10 +73,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let credits = 0;
 
     const priceToCreditsMap: { [key: string]: number } = {
-      price_1SXDQDLkzHXwN84vsj54I3Ly: 10,
-      price_1SXDR5LkzHXwN84vNGKH0EJH: 25,
-      price_1SXDSPLkzHXwN84vLo9kQlbE: 55,
-      price_1SXDSoLkzHXwN84vSe77zkio: 150,
+      'price_1Sh2v2LkzHXwN84vL4NqUfO7': 10,
+      'price_1Sh2w9LkzHXwN84v8ZD66X1d': 25,
+      'price_1Sh2wuLkzHXwN84vp1Og2GmI': 55,
+      'price_1Sh2xdLkzHXwN84vuD2S6iF6': 150,
     };
 
     if (priceId && priceToCreditsMap[priceId]) {
