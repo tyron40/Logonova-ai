@@ -67,16 +67,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Check user has credits
+    // Check user has credits and get their OpenAI API key
     const { data: apiKey, error: apiKeyError } = await supabase
       .from("user_api_keys")
-      .select("credit_balance")
+      .select("credit_balance, openai_api_key")
       .eq("user_id", user.id)
       .maybeSingle();
 
     if (apiKeyError) {
       return new Response(
-        JSON.stringify({ error: "Failed to fetch user credits" }),
+        JSON.stringify({ error: "Failed to fetch user data" }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -96,20 +96,20 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Parse request body
-    const requestData: LogoGenerationRequest = await req.json();
-
-    // Get OpenAI API key from environment
-    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
+    // Get OpenAI API key from user's stored keys
+    const openaiApiKey = apiKey?.openai_api_key;
     if (!openaiApiKey) {
       return new Response(
-        JSON.stringify({ error: "OpenAI API key not configured" }),
+        JSON.stringify({ error: "OpenAI API key not configured. Please add your API key in Account Settings." }),
         {
-          status: 500,
+          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
+
+    // Parse request body
+    const requestData: LogoGenerationRequest = await req.json();
 
     // Build the logo prompt
     const prompt = buildLogoPrompt(requestData);
