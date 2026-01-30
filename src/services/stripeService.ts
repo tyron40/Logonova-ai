@@ -51,8 +51,8 @@ export class StripeService {
     const successUrl = `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${baseUrl}/generator`;
 
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
-    const apiUrl = `${apiBaseUrl}/api/stripe-checkout`;
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const apiUrl = `${supabaseUrl}/functions/v1/stripe-checkout`;
 
     console.log('Creating checkout session:', { priceId, mode, apiUrl });
 
@@ -185,8 +185,8 @@ export class StripeService {
     }
 
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
-      const response = await fetch(`${apiBaseUrl}/api/verify-payment`, {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/verify-payment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
