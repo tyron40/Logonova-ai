@@ -58,7 +58,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
 
         // Check if email confirmation is disabled
         if (result.data.user && !result.data.user.email_confirmed_at) {
-          // Database trigger automatically gives 100 credits to new users
           setSuccess('Account created successfully! You can now sign in.');
         } else {
           setSuccess('Account created successfully! Please check your email to verify your account.');
@@ -156,10 +155,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
             <div className="text-sm text-blue-300">
               <p className="font-semibold mb-2">🚀 Account Benefits</p>
               <ul className="space-y-1 text-blue-300/80">
-                <li>• Get 100 free credits on signup</li>
                 <li>• Save and manage your logos</li>
                 <li>• Access logo history</li>
                 <li>• Personalized experience</li>
+                <li>• Purchase credits as needed</li>
               </ul>
             </div>
           </div>

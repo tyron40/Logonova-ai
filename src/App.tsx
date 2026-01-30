@@ -133,9 +133,6 @@ function App() {
     setCurrentUser(user);
     setShowAuthModal(false);
 
-    // Database trigger automatically gives 100 credits to new users
-    // No need for manual credit management here
-
     setHasApiKey(apiKeyManager.hasApiKey('openai'));
   };
 
