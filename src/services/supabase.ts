@@ -180,6 +180,25 @@ export class SupabaseService {
     }
   }
 
+  async resetPasswordForEmail(email: string) {
+    if (!this.isAvailable()) {
+      throw new Error('Supabase not configured. Please check your environment variables and restart the server.');
+    }
+
+    try {
+      const { data, error } = await supabase!.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}`,
+      });
+
+      return { data, error };
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Failed to fetch')) {
+        throw new Error('Cannot connect to Supabase. Please check your internet connection and Supabase URL.');
+      }
+      throw error;
+    }
+  }
+
   async updatePassword(newPassword: string) {
     if (!this.isAvailable()) {
       throw new Error('Supabase not configured. Please check your environment variables and restart the server.');

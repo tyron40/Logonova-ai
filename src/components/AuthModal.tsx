@@ -11,6 +11,7 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess }) => {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -106,6 +107,44 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
     }
   };
 
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!email.trim()) {
+      setError('Please enter your email address');
+      return;
+    }
+
+    if (!supabaseService.isAvailable()) {
+      setError('Authentication service not available. Please check your configuration.');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const result = await supabaseService.resetPasswordForEmail(email);
+      if (result.error) {
+        throw result.error;
+      }
+
+      setSuccess('Password reset email sent! Please check your inbox and follow the instructions.');
+      setEmail('');
+    } catch (error: any) {
+      let errorMessage = error.message || 'An error occurred';
+
+      if (errorMessage.includes('Failed to fetch')) {
+        errorMessage = 'Network error: Cannot reach authentication service. Please check your connection.';
+      }
+
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const resetForm = () => {
     setUsername('');
     setEmail('');
@@ -116,6 +155,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
 
   const toggleMode = () => {
     setIsSignUp(!isSignUp);
+    setIsForgotPassword(false);
+    resetForm();
+  };
+
+  const toggleForgotPassword = () => {
+    setIsForgotPassword(!isForgotPassword);
+    setIsSignUp(false);
     resetForm();
   };
 
@@ -131,14 +177,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center">
-                {isSignUp ? <UserPlus className="w-5 h-5 text-white" /> : <LogIn className="w-5 h-5 text-white" />}
+                {isSignUp ? <UserPlus className="w-5 h-5 text-white" /> : isForgotPassword ? <Mail className="w-5 h-5 text-white" /> : <LogIn className="w-5 h-5 text-white" />}
               </div>
               <div>
                 <h3 className="text-xl font-bold text-white">
-                  {isSignUp ? 'Create Account' : 'Sign In'}
+                  {isSignUp ? 'Create Account' : isForgotPassword ? 'Reset Password' : 'Sign In'}
                 </h3>
                 <p className="text-sm text-gray-400">
-                  {isSignUp ? 'Join LogoAI today' : 'Welcome back to LogoAI'}
+                  {isSignUp ? 'Join LogoAI today' : isForgotPassword ? 'Enter your email to reset' : 'Welcome back to LogoAI'}
                 </p>
               </div>
             </div>
@@ -151,21 +197,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
           </div>
 
           {/* Benefits */}
-          <div className="mb-6 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg">
-            <div className="text-sm text-blue-300">
-              <p className="font-semibold mb-2">🚀 Account Benefits</p>
-              <ul className="space-y-1 text-blue-300/80">
-                <li>• Save and manage your logos</li>
-                <li>• Access logo history</li>
-                <li>• Personalized experience</li>
-                <li>• Purchase credits as needed</li>
-              </ul>
+          {!isForgotPassword && (
+            <div className="mb-6 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg">
+              <div className="text-sm text-blue-300">
+                <p className="font-semibold mb-2">🚀 Account Benefits</p>
+                <ul className="space-y-1 text-blue-300/80">
+                  <li>• Save and manage your logos</li>
+                  <li>• Access logo history</li>
+                  <li>• Personalized experience</li>
+                  <li>• Purchase credits as needed</li>
+                </ul>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {isSignUp && (
+          <form onSubmit={isForgotPassword ? handlePasswordReset : handleSubmit} className="space-y-4">
+            {isSignUp && !isForgotPassword && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Username
@@ -213,28 +261,42 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 mobile-input"
-                  placeholder="Enter your password"
-                  disabled={isLoading}
-                  autoComplete={isSignUp ? "new-password" : "current-password"}
-                />
+            {!isForgotPassword && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-300">
+                    Password
+                  </label>
+                  {!isSignUp && (
+                    <button
+                      type="button"
+                      onClick={toggleForgotPassword}
+                      className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                      disabled={isLoading}
+                    >
+                      Forgot Password?
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 mobile-input"
+                    placeholder="Enter your password"
+                    disabled={isLoading}
+                    autoComplete={isSignUp ? "new-password" : "current-password"}
+                  />
+                </div>
+                {isSignUp && (
+                  <p className="mt-1 text-xs text-gray-400">
+                    Password must be at least 6 characters long
+                  </p>
+                )}
               </div>
-              {isSignUp && (
-                <p className="mt-1 text-xs text-gray-400">
-                  Password must be at least 6 characters long
-                </p>
-              )}
-            </div>
+            )}
 
             {error && (
               <div className="flex items-center space-x-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
@@ -258,12 +320,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
               {isLoading ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>{isSignUp ? 'Creating Account...' : 'Signing In...'}</span>
+                  <span>{isForgotPassword ? 'Sending Reset Link...' : isSignUp ? 'Creating Account...' : 'Signing In...'}</span>
                 </>
               ) : (
                 <>
-                  {isSignUp ? <UserPlus className="w-5 h-5" /> : <LogIn className="w-5 h-5" />}
-                  <span>{isSignUp ? 'Create Account' : 'Sign In'}</span>
+                  {isForgotPassword ? <Mail className="w-5 h-5" /> : isSignUp ? <UserPlus className="w-5 h-5" /> : <LogIn className="w-5 h-5" />}
+                  <span>{isForgotPassword ? 'Send Reset Link' : isSignUp ? 'Create Account' : 'Sign In'}</span>
                 </>
               )}
             </button>
@@ -272,14 +334,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
           {/* Toggle Mode */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-400">
-              {isSignUp ? 'Already have an account?' : "Don't have an account?"}
-              <button
-                onClick={toggleMode}
-                className="ml-1 text-blue-400 hover:text-blue-300 font-medium transition-colors touch-manipulation"
-                disabled={isLoading}
-              >
-                {isSignUp ? 'Sign In' : 'Sign Up'}
-              </button>
+              {isForgotPassword ? (
+                <>
+                  Remember your password?
+                  <button
+                    onClick={toggleForgotPassword}
+                    className="ml-1 text-blue-400 hover:text-blue-300 font-medium transition-colors touch-manipulation"
+                    disabled={isLoading}
+                  >
+                    Back to Sign In
+                  </button>
+                </>
+              ) : (
+                <>
+                  {isSignUp ? 'Already have an account?' : "Don't have an account?"}
+                  <button
+                    onClick={toggleMode}
+                    className="ml-1 text-blue-400 hover:text-blue-300 font-medium transition-colors touch-manipulation"
+                    disabled={isLoading}
+                  >
+                    {isSignUp ? 'Sign In' : 'Sign Up'}
+                  </button>
+                </>
+              )}
             </p>
           </div>
 
