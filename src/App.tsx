@@ -4,6 +4,7 @@ import { HomePage } from './components/HomePage';
 import LogoGenerator from './components/LogoGenerator';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { AuthModal } from './components/AuthModal';
+import { PasswordUpdateModal } from './components/PasswordUpdateModal';
 import { SubscriptionPlans } from './components/SubscriptionPlans';
 import { SuccessPage } from './components/SuccessPage';
 import { CreditsPurchaseModal } from './components/CreditsPurchaseModal';
@@ -19,6 +20,7 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCreditModal, setShowCreditModal] = useState(false);
   const [showAccountSettings, setShowAccountSettings] = useState(false);
+  const [showPasswordUpdateModal, setShowPasswordUpdateModal] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -89,6 +91,11 @@ function App() {
         const user = session?.user || null;
 
         setCurrentUser(user);
+
+        // Handle password recovery
+        if (event === 'PASSWORD_RECOVERY') {
+          setShowPasswordUpdateModal(true);
+        }
 
         // Reinitialize API key manager on meaningful auth state changes
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
@@ -253,6 +260,18 @@ function App() {
           onClose={() => setShowAccountSettings(false)}
           currentUser={currentUser}
           onSignOut={handleSignOut}
+        />
+      )}
+
+      {/* Password Update Modal */}
+      {showPasswordUpdateModal && (
+        <PasswordUpdateModal
+          isOpen={showPasswordUpdateModal}
+          onClose={() => setShowPasswordUpdateModal(false)}
+          onSuccess={() => {
+            setShowPasswordUpdateModal(false);
+            setShowAuthModal(true);
+          }}
         />
       )}
     </div>
