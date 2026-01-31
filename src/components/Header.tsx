@@ -1,14 +1,22 @@
 import React from 'react';
-import { Sparkles, Menu, X } from 'lucide-react';
+import { Sparkles, Menu, X, LogIn, LogOut, User as UserIcon } from 'lucide-react';
+import { CreditDisplay } from './CreditDisplay';
+import type { User } from '@supabase/supabase-js';
 
 interface HeaderProps {
   currentView: 'home' | 'generator';
   onViewChange: (view: 'home' | 'generator') => void;
+  currentUser: User | null;
+  onAuthClick: () => void;
+  onSignOut: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   currentView,
-  onViewChange
+  onViewChange,
+  currentUser,
+  onAuthClick,
+  onSignOut
 }) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
@@ -44,6 +52,26 @@ export const Header: React.FC<HeaderProps> = ({
                 {item.label}
               </button>
             ))}
+
+            {currentUser && <CreditDisplay currentUser={currentUser} compact />}
+
+            {currentUser ? (
+              <button
+                onClick={onSignOut}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+            ) : (
+              <button
+                onClick={onAuthClick}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium gradient-primary text-white shadow-glow transition-all"
+              >
+                <LogIn className="w-4 h-4" />
+                Sign In
+              </button>
+            )}
           </nav>
 
           <button
@@ -73,6 +101,36 @@ export const Header: React.FC<HeaderProps> = ({
                   {item.label}
                 </button>
               ))}
+
+              {currentUser && (
+                <div className="px-4 py-2">
+                  <CreditDisplay currentUser={currentUser} compact />
+                </div>
+              )}
+
+              {currentUser ? (
+                <button
+                  onClick={() => {
+                    onSignOut();
+                    setIsMenuOpen(false);
+                  }}
+                  className="flex items-center gap-2 px-4 py-3 text-left rounded-lg font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all mobile-optimized mobile-button"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    onAuthClick();
+                    setIsMenuOpen(false);
+                  }}
+                  className="flex items-center gap-2 px-4 py-3 text-left rounded-lg font-medium gradient-primary text-white transition-all mobile-optimized mobile-button"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Sign In
+                </button>
+              )}
             </nav>
           </div>
         )}

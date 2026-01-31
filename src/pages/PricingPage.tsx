@@ -1,25 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { CreditPurchase } from '../components/CreditPurchase';
 import { supabase } from '../services/supabase';
-import { Loader2 } from 'lucide-react';
+import { Loader2, LogIn } from 'lucide-react';
+import type { User } from '@supabase/supabase-js';
 
-export const PricingPage: React.FC = () => {
-  const [user, setUser] = useState<any>(null);
+interface PricingPageProps {
+  currentUser: User | null;
+  onAuthRequired: () => void;
+}
+
+export const PricingPage: React.FC<PricingPageProps> = ({ currentUser, onAuthRequired }) => {
   const [credits, setCredits] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!currentUser || !supabase) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-
-        if (!currentUser) {
-          setLoading(false);
-          return;
-        }
-
-        setUser(currentUser);
-
         const { data, error } = await supabase
           .from('user_api_keys')
           .select('credit_balance')
@@ -36,7 +37,7 @@ export const PricingPage: React.FC = () => {
     };
 
     fetchData();
-  }, []);
+  }, [currentUser]);
 
   if (loading) {
     return (
@@ -46,12 +47,23 @@ export const PricingPage: React.FC = () => {
     );
   }
 
-  if (!user) {
+  if (!currentUser) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Sign In Required</h1>
-          <p className="text-slate-300">Please sign in to purchase credits.</p>
+        <div className="text-center glass-card p-12 rounded-2xl max-w-md mx-auto">
+          <div className="w-20 h-20 gradient-primary rounded-full flex items-center justify-center mx-auto mb-6">
+            <LogIn className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-4">Sign In Required</h1>
+          <p className="text-slate-300 mb-8">
+            Please sign in to purchase credits and start generating professional logos.
+          </p>
+          <button
+            onClick={onAuthRequired}
+            className="px-6 py-3 gradient-primary text-white rounded-lg font-semibold hover:opacity-90 transition-opacity mobile-optimized mobile-button"
+          >
+            Sign In Now
+          </button>
         </div>
       </div>
     );
@@ -65,7 +77,7 @@ export const PricingPage: React.FC = () => {
             Choose Your Credit Package
           </h1>
           <p className="text-xl text-slate-300 max-w-2xl mx-auto">
-            Purchase credits to generate professional logos with AI. Each logo generation uses 1-2 credits.
+            Purchase credits to generate professional logos with AI. Each logo generation uses 1 credit.
           </p>
         </div>
 

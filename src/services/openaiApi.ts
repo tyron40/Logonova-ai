@@ -1,4 +1,4 @@
-import { apiKeyManager } from './apiKeyManager';
+import { supabase } from './supabase';
 
 export interface LogoGenerationRequest {
   companyName: string;
@@ -21,41 +21,35 @@ export class OpenAILogoService {
 
   async generateLogo(request: LogoGenerationRequest): Promise<string> {
     try {
-      const apiKey = apiKeyManager.getApiKey('openai');
-
-      if (!apiKey) {
-        throw new Error("OpenAI API key not configured. Please add VITE_OPENAI_API_KEY to your .env file.");
+      if (!supabase) {
+        throw new Error("Authentication required. Please sign in to generate logos.");
       }
 
-      const prompt = `Create a professional logo for "${request.companyName}".
-Style: ${request.style}
-Industry: ${request.industry}
-Description: ${request.description}
-Color scheme: ${request.colorScheme}
-The logo should be clean, memorable, and suitable for business use.`;
+      const { data: { session } } = await supabase.auth.getSession();
 
-      const response = await fetch('https://api.openai.com/v1/images/generations', {
-        method: 'POST',
+      if (!session) {
+        throw new Error("You must be logged in to generate logos. Please sign in.");
+      }
+
+      const apiBaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const apiUrl = `${apiBaseUrl}/functions/v1/generate-logo-with-credits`;
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          model: 'dall-e-3',
-          prompt: prompt,
-          n: 1,
-          size: '1024x1024',
-          quality: 'standard',
-        }),
+        body: JSON.stringify(request),
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: { message: "Unknown error" } }));
-        throw new Error(error.error?.message ?? "Image generation failed.");
+        const error = await response.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(error.error ?? "Image generation failed.");
       }
 
       const data = await response.json();
-      return data.data[0]?.url ?? "";
+      return data.imageUrl ?? "";
     } catch (err) {
       console.error("Logo Generation Error:", err);
       throw new Error(err instanceof Error ? err.message : "Failed to generate logo. Try again.");
@@ -64,42 +58,45 @@ The logo should be clean, memorable, and suitable for business use.`;
 
   async generateBusinessKeywords(companyName: string, description: string): Promise<string> {
     try {
-      const apiKey = apiKeyManager.getApiKey('openai');
-
-      if (!apiKey) {
-        throw new Error("OpenAI API key not configured. Please add VITE_OPENAI_API_KEY to your .env file.");
+      if (!supabase) {
+        throw new Error("Authentication required. Please sign in to use AI enhancement.");
       }
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        throw new Error("You must be logged in to use AI enhancement. Please sign in.");
+      }
+
+      const apiBaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const apiUrl = `${apiBaseUrl}/functions/v1/enhance-description`;
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
+          "Authorization": `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a branding expert. Enhance business descriptions to be more descriptive and professional for logo generation. Keep it concise (2-3 sentences).'
-            },
-            {
-              role: 'user',
-              content: `Company: ${companyName}\nCurrent description: ${description || 'Professional business'}\n\nProvide an enhanced description:`
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 150,
+          companyName,
+          description: description || "",
         }),
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: { message: "Unknown error" } }));
-        throw new Error(error.error?.message ?? "Enhancement failed.");
+        const errorText = await response.text();
+        let errorMessage = "Enhancement failed";
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      return data.choices[0]?.message?.content?.trim() ?? description;
+      return data.enhancedDescription ?? description;
     } catch (err) {
       console.error("Description Enhancement Error:", err);
       throw new Error(err instanceof Error ? err.message : "Failed to enhance description");

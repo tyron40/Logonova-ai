@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
 import { Wand2, Download, Loader2, Sparkles, RefreshCw, Lightbulb, Eye, X } from 'lucide-react';
 import { openaiLogoService } from '../services/openaiApi';
+import type { User } from '@supabase/supabase-js';
 
-export default function LogoGenerator() {
+interface LogoGeneratorProps {
+  currentUser: User | null;
+  onAuthRequired: () => void;
+}
+
+export default function LogoGenerator({ currentUser, onAuthRequired }: LogoGeneratorProps) {
   const [companyName, setCompanyName] = useState('');
   const [description, setDescription] = useState('');
   const [style, setStyle] = useState('modern');
@@ -59,6 +65,11 @@ export default function LogoGenerator() {
       return;
     }
 
+    if (!currentUser) {
+      onAuthRequired();
+      return;
+    }
+
     setError('');
     setIsGenerating(true);
 
@@ -79,7 +90,12 @@ export default function LogoGenerator() {
       console.error('Error generating logo:', error);
       let errorMessage = 'Failed to generate logo. Please try again.';
       if (error instanceof Error) {
-        if (error.message.includes('fetch')) {
+        if (error.message.includes('logged in') || error.message.includes('sign in')) {
+          onAuthRequired();
+          return;
+        } else if (error.message.includes('Insufficient credits')) {
+          errorMessage = 'Insufficient credits. Please purchase more credits to continue generating logos.';
+        } else if (error.message.includes('fetch')) {
           errorMessage = 'Unable to connect to AI service. Please check your internet connection.';
         } else if (error.message.includes('rate limit')) {
           errorMessage = 'AI service is busy. Please wait a moment and try again.';
@@ -99,6 +115,11 @@ export default function LogoGenerator() {
       return;
     }
 
+    if (!currentUser) {
+      onAuthRequired();
+      return;
+    }
+
     setIsEnhancing(true);
     setError('');
 
@@ -107,12 +128,15 @@ export default function LogoGenerator() {
         companyName.trim(),
         description.trim() || 'Professional business'
       );
-      
-      // Use the enhanced keywords as an improved description
+
       setDescription(enhanced);
     } catch (error) {
       console.error('Error enhancing description:', error);
-      setError(error instanceof Error ? error.message : 'Failed to enhance description');
+      if (error instanceof Error && (error.message.includes('logged in') || error.message.includes('sign in'))) {
+        onAuthRequired();
+      } else {
+        setError(error instanceof Error ? error.message : 'Failed to enhance description');
+      }
     } finally {
       setIsEnhancing(false);
     }
