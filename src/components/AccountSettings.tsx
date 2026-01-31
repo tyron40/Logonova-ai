@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { X, Key, Trash2, AlertTriangle, Lock, User, Shield, CheckCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Key, Trash2, AlertTriangle, Lock, User, Shield } from 'lucide-react';
 import { supabaseService } from '../services/supabase';
-import { apiKeyManager } from '../services/apiKeyManager';
 
 interface AccountSettingsProps {
   isOpen: boolean;
@@ -25,45 +24,6 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [openaiApiKey, setOpenaiApiKey] = useState('');
-  const [isUpdatingApiKey, setIsUpdatingApiKey] = useState(false);
-  const [hasOpenaiKey, setHasOpenaiKey] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setHasOpenaiKey(apiKeyManager.hasApiKey('openai'));
-    }
-  }, [isOpen]);
-
-  const handleApiKeyUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!openaiApiKey.trim()) {
-      setError('Please enter an API key');
-      return;
-    }
-
-    if (!openaiApiKey.startsWith('sk-')) {
-      setError('OpenAI API keys should start with "sk-"');
-      return;
-    }
-
-    setIsUpdatingApiKey(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      await apiKeyManager.setApiKey('openai', openaiApiKey.trim());
-      setSuccess('OpenAI API key saved successfully!');
-      setHasOpenaiKey(true);
-      setOpenaiApiKey('');
-    } catch (error: any) {
-      console.error('API key update error:', error);
-      setError(error.message || 'Failed to save API key');
-    } finally {
-      setIsUpdatingApiKey(false);
-    }
-  };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -206,70 +166,6 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
               <p className="text-sm text-green-400">{success}</p>
             </div>
           )}
-
-          {/* API Key Management Section */}
-          <div className="mb-8">
-            <div className="flex items-center space-x-2 mb-4">
-              <Key className="w-5 h-5 text-purple-400" />
-              <h4 className="text-lg font-semibold text-white">OpenAI API Key</h4>
-            </div>
-
-            <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4 mb-4">
-              <p className="text-sm text-purple-300 mb-2">
-                Add your own OpenAI API key to use AI-powered features like logo generation and business description enhancement.
-              </p>
-              <p className="text-xs text-purple-300/70">
-                Your API key is stored securely and only used for your requests.
-              </p>
-            </div>
-
-            {hasOpenaiKey && (
-              <div className="flex items-center space-x-2 p-3 bg-green-500/10 border border-green-500/30 rounded-lg mb-4">
-                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-                <p className="text-sm text-green-400">OpenAI API key is configured</p>
-              </div>
-            )}
-
-            <form onSubmit={handleApiKeyUpdate} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  {hasOpenaiKey ? 'Update OpenAI API Key' : 'OpenAI API Key'}
-                </label>
-                <div className="relative">
-                  <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="password"
-                    value={openaiApiKey}
-                    onChange={(e) => setOpenaiApiKey(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
-                    placeholder="sk-..."
-                    disabled={isUpdatingApiKey}
-                  />
-                </div>
-                <p className="mt-1 text-xs text-gray-400">
-                  Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300">platform.openai.com/api-keys</a>
-                </p>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isUpdatingApiKey || !openaiApiKey}
-                className="flex items-center justify-center space-x-2 bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
-              >
-                {isUpdatingApiKey ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Saving...</span>
-                  </>
-                ) : (
-                  <>
-                    <Key className="w-5 h-5" />
-                    <span>{hasOpenaiKey ? 'Update API Key' : 'Save API Key'}</span>
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
 
           {/* Change Password Section */}
           <div className="mb-8">

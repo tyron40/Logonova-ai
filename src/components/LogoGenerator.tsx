@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Wand2, Download, Loader2, Sparkles, RefreshCw, Lightbulb, Eye, X, AlertTriangle, Key } from 'lucide-react';
+import { Wand2, Download, Loader2, Sparkles, RefreshCw, Lightbulb, Eye, X, AlertTriangle } from 'lucide-react';
 import { openaiLogoService } from '../services/openaiApi';
-import { apiKeyManager } from '../services/apiKeyManager';
 import type { User } from '@supabase/supabase-js';
 
 interface LogoGeneratorProps {
@@ -20,13 +19,6 @@ export default function LogoGenerator({ currentUser, onAuthRequired }: LogoGener
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [error, setError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
-  const [hasOpenaiKey, setHasOpenaiKey] = useState(false);
-
-  React.useEffect(() => {
-    if (currentUser) {
-      setHasOpenaiKey(apiKeyManager.hasApiKey('openai'));
-    }
-  }, [currentUser]);
 
   // Simple options
 
@@ -101,8 +93,6 @@ export default function LogoGenerator({ currentUser, onAuthRequired }: LogoGener
         if (error.message.includes('logged in') || error.message.includes('sign in')) {
           onAuthRequired();
           return;
-        } else if (error.message.includes('API key not configured') || error.message.includes('OpenAI API key')) {
-          errorMessage = '🔑 OpenAI API key required! Click your profile icon → Account Settings to add your API key. Get one free at platform.openai.com/api-keys';
         } else if (error.message.includes('Insufficient credits')) {
           errorMessage = 'Insufficient credits. Please purchase more credits to continue generating logos.';
         } else if (error.message.includes('fetch')) {
@@ -214,29 +204,6 @@ export default function LogoGenerator({ currentUser, onAuthRequired }: LogoGener
           {/* Simple Form */}
           <div className="bg-gray-800/50 backdrop-blur-lg rounded-3xl p-8 border border-gray-700/50">
             <div className="space-y-6">
-              {/* Info Banner */}
-              {currentUser && !hasOpenaiKey && (
-                <div className="bg-blue-500/10 border border-blue-400/30 rounded-xl p-4">
-                  <div className="flex items-start gap-3">
-                    <Key className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm text-blue-300 font-medium mb-1">OpenAI API Key Required</p>
-                      <p className="text-xs text-blue-300/80">
-                        Add your OpenAI API key in Account Settings to start generating logos. Get a free key at{' '}
-                        <a
-                          href="https://platform.openai.com/api-keys"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="underline hover:text-blue-200"
-                        >
-                          platform.openai.com/api-keys
-                        </a>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Company Name */}
               <div>
                 <label className="block text-white font-medium mb-3">

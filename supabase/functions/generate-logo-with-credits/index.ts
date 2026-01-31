@@ -67,10 +67,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Check user has credits and get their OpenAI API key
+    // Check user has credits
     const { data: apiKey, error: apiKeyError } = await supabase
       .from("user_api_keys")
-      .select("credit_balance, openai_api_key")
+      .select("credit_balance")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -96,13 +96,13 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Get OpenAI API key from user's stored keys
-    const openaiApiKey = apiKey?.openai_api_key;
+    // Use OpenAI API key from environment
+    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
     if (!openaiApiKey) {
       return new Response(
-        JSON.stringify({ error: "OpenAI API key not configured. Please add your API key in Account Settings." }),
+        JSON.stringify({ error: "OpenAI API key not configured on server." }),
         {
-          status: 400,
+          status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );

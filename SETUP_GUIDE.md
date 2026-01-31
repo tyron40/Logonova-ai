@@ -8,22 +8,13 @@ Your app is now connected to your Supabase instance and ready to use!
 - Visit your app and create an account or sign in
 - Your account will be created in your Supabase database
 
-### 2. Add Your OpenAI API Key
-**Required for logo generation**
-
-1. Click the profile icon in the top right corner
-2. Select "Account Settings"
-3. Scroll to the "OpenAI API Key" section
-4. Get a free API key from: https://platform.openai.com/api-keys
-5. Paste your key (starts with `sk-`) and click "Save API Key"
-
-### 3. Purchase Credits
+### 2. Purchase Credits
 - Click "Buy Credits" in the header
 - Select a credit package
 - Complete payment through Stripe
 - Credits will be added automatically to your account
 
-### 4. Generate Logos
+### 3. Generate Logos
 - Each logo generation costs 1 credit
 - Enter your business name and details
 - Click "Generate Logo"
@@ -53,28 +44,23 @@ Your app is now connected to your Supabase instance and ready to use!
 ```
 1. User signs up
    ↓
-2. User adds OpenAI API key in Account Settings
+2. User purchases credits via Stripe
    ↓
-3. User purchases credits via Stripe
+3. User generates logos (1 credit per logo)
    ↓
-4. User generates logos (1 credit per logo)
+4. Credits automatically deducted
    ↓
-5. Credits automatically deducted
-   ↓
-6. User downloads their logo
+5. User downloads their logo
 ```
 
 ## Important Notes
 
-- **Each user provides their own OpenAI API key** - This keeps costs transparent and allows users to control their AI usage
+- **Centralized API Key** - Your OpenAI API key from .env is used for all logo generations
 - **Credits never expire** - Users can purchase credits and use them whenever needed
-- **Secure storage** - User API keys are stored encrypted in Supabase
-- **Rate limits** - OpenAI has rate limits on their API, so heavy usage may require upgraded API tiers
+- **1 Credit = 1 Logo** - Simple pricing model
+- **HD Quality** - All logos are generated using DALL-E 3 in HD quality
 
 ## Troubleshooting
-
-**"OpenAI API key not configured" error?**
-- Go to Account Settings and add your OpenAI API key
 
 **"Insufficient credits" error?**
 - Purchase more credits through the "Buy Credits" button
@@ -82,6 +68,10 @@ Your app is now connected to your Supabase instance and ready to use!
 **Logo generation slow?**
 - OpenAI's DALL-E 3 can take 10-30 seconds per image
 - Using HD quality for best results
+
+**"OpenAI API key not configured on server" error?**
+- Make sure OPENAI_API_KEY is set in your .env file
+- Verify it starts with `sk-`
 
 ## Support
 
