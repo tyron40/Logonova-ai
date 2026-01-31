@@ -1,5 +1,3 @@
-import { supabase, supabaseService } from './supabase';
-
 export interface ApiKeys {
   replicate?: string;
   openai?: string;
@@ -9,7 +7,6 @@ export interface ApiKeys {
 
 export class ApiKeyManager {
   private static instance: ApiKeyManager;
-  private currentUserId: string | null = null;
   private cachedKeys: ApiKeys = {};
   private initialized = false;
 
@@ -20,38 +17,21 @@ export class ApiKeyManager {
     return ApiKeyManager.instance;
   }
 
-  async initializeForUser(userId: string | null) {
-    this.currentUserId = userId;
+  initializeForUser(_userId: string | null) {
     this.cachedKeys = {};
-
-    // Load environment keys first (highest priority)
-    this.loadEnvironmentKeysAsFallback();
-
-    // Load user-specific keys from localStorage
+    this.loadEnvironmentKeys();
     this.loadLocalApiKeys();
-
-    // Load from Supabase if available and user is logged in
-    if (userId && supabaseService.isAvailable()) {
-      try {
-        await this.loadSupabaseApiKeys(userId);
-      } catch (error) {
-        // Silently fail
-      }
-    }
-
     this.initialized = true;
   }
 
-  private loadEnvironmentKeysAsFallback() {
-    // Load API keys from environment variables
+  private loadEnvironmentKeys() {
     const envKeys = {
       openai: import.meta.env.VITE_OPENAI_API_KEY,
-      replicate: import.meta.env.VITE_REPLICATE_API_TOKEN,
+      replicate: import.meta.env.VITE_REPLICATE_API_KEY,
       gemini: import.meta.env.VITE_GEMINI_API_KEY,
       huggingFace: import.meta.env.VITE_HUGGING_FACE_API_KEY
     };
 
-    // Only store non-empty keys
     Object.entries(envKeys).forEach(([key, value]) => {
       if (value && value.trim()) {
         this.cachedKeys[key as keyof ApiKeys] = value.trim();
@@ -61,11 +41,9 @@ export class ApiKeyManager {
 
   private loadLocalApiKeys() {
     try {
-      const storageKey = this.currentUserId ? `api-keys-${this.currentUserId}` : 'api-keys-guest';
-      const stored = localStorage.getItem(storageKey);
+      const stored = localStorage.getItem('api-keys');
       if (stored) {
         const localKeys = JSON.parse(stored);
-        // Merge with existing keys (environment keys take precedence)
         Object.entries(localKeys).forEach(([key, value]) => {
           if (value && !this.cachedKeys[key as keyof ApiKeys]) {
             this.cachedKeys[key as keyof ApiKeys] = value as string;
@@ -77,50 +55,11 @@ export class ApiKeyManager {
     }
   }
 
-  private async loadSupabaseApiKeys(userId: string) {
-    try {
-      if (!supabase) return;
-
-      // Add a timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Supabase query timeout')), 3000);
-      });
-
-      const queryPromise = supabase
-        .from('user_api_keys')
-        .select('openai_api_key, replicate_api_key, gemini_api_key, hugging_face_api_key')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
-
-      if (error) return;
-
-      if (data) {
-        if (data.openai_api_key && !this.cachedKeys.openai) {
-          this.cachedKeys.openai = data.openai_api_key;
-        }
-        if (data.replicate_api_key && !this.cachedKeys.replicate) {
-          this.cachedKeys.replicate = data.replicate_api_key;
-        }
-        if (data.gemini_api_key && !this.cachedKeys.gemini) {
-          this.cachedKeys.gemini = data.gemini_api_key;
-        }
-        if (data.hugging_face_api_key && !this.cachedKeys.huggingFace) {
-          this.cachedKeys.huggingFace = data.hugging_face_api_key;
-        }
-      }
-    } catch (error) {
-      // Silently fail
-    }
-  }
-
-  async setApiKey(keyType: 'replicate' | 'openai' | 'gemini' | 'huggingFace', apiKey: string) {
+  setApiKey(keyType: 'replicate' | 'openai' | 'gemini' | 'huggingFace', apiKey: string) {
     if (!apiKey || !apiKey.trim()) {
       throw new Error('API key cannot be empty');
     }
 
-    // Validate API key format
     const validationRules = {
       openai: (key: string) => key.startsWith('sk-'),
       replicate: (key: string) => key.includes('-') && key.length > 20,
@@ -135,50 +74,11 @@ export class ApiKeyManager {
 
     this.cachedKeys[keyType] = apiKey.trim();
 
-    // Save to localStorage
     try {
-      const storageKey = this.currentUserId ? `api-keys-${this.currentUserId}` : 'api-keys-guest';
-      const currentStored = localStorage.getItem(storageKey);
+      const currentStored = localStorage.getItem('api-keys');
       const storedKeys = currentStored ? JSON.parse(currentStored) : {};
       storedKeys[keyType] = apiKey.trim();
-      localStorage.setItem(storageKey, JSON.stringify(storedKeys));
-    } catch (error) {
-      // Silently fail
-    }
-
-    // Save to Supabase if available and user is logged in
-    if (this.currentUserId && supabaseService.isAvailable()) {
-      try {
-        await this.storeApiKeyToSupabase(keyType, apiKey.trim());
-      } catch (error) {
-        // Silently fail
-      }
-    }
-  }
-
-  private async storeApiKeyToSupabase(keyType: string, apiKey: string) {
-    try {
-      const columnMap: Record<string, string> = {
-        openai: 'openai_api_key',
-        replicate: 'replicate_api_key',
-        gemini: 'gemini_api_key',
-        huggingFace: 'hugging_face_api_key'
-      };
-
-      const columnName = columnMap[keyType];
-      if (!columnName) return;
-
-      if (!supabase) return;
-
-      await supabase
-        .from('user_api_keys')
-        .upsert({
-          user_id: this.currentUserId,
-          [columnName]: apiKey,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id'
-        });
+      localStorage.setItem('api-keys', JSON.stringify(storedKeys));
     } catch (error) {
       // Silently fail
     }
@@ -201,33 +101,12 @@ export class ApiKeyManager {
     return this.initialized;
   }
 
-  async clearApiKeys() {
+  clearApiKeys() {
     this.cachedKeys = {};
-
-    // Clear from localStorage
     try {
-      const storageKey = this.currentUserId ? `api-keys-${this.currentUserId}` : 'api-keys-guest';
-      localStorage.removeItem(storageKey);
+      localStorage.removeItem('api-keys');
     } catch (error) {
       // Silently fail
-    }
-
-    // Clear from Supabase if available and user is logged in
-    if (this.currentUserId && supabaseService.isAvailable() && supabase) {
-      try {
-        await supabase
-          .from('user_api_keys')
-          .update({
-            openai_api_key: null,
-            replicate_api_key: null,
-            gemini_api_key: null,
-            hugging_face_api_key: null,
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', this.currentUserId);
-      } catch (error) {
-        // Silently fail
-      }
     }
   }
 }
