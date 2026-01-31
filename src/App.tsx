@@ -26,7 +26,13 @@ function App() {
 
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        // Add timeout to getSession to prevent hanging
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Session timeout')), 3000);
+        });
+
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
 
         if (mounted) {
           const currentUser = session?.user ?? null;
@@ -47,7 +53,7 @@ function App() {
         console.warn('Initialization timeout - forcing app to load');
         setLoading(false);
       }
-    }, 5000);
+    }, 4000);
 
     initializeAuth();
 

@@ -81,11 +81,18 @@ export class ApiKeyManager {
     try {
       if (!supabase) return;
 
-      const { data, error } = await supabase
+      // Add a timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Supabase query timeout')), 3000);
+      });
+
+      const queryPromise = supabase
         .from('user_api_keys')
         .select('openai_api_key, replicate_api_key, gemini_api_key, hugging_face_api_key')
         .eq('user_id', userId)
         .maybeSingle();
+
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
       if (error) return;
 
