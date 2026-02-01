@@ -14,8 +14,6 @@ import { Coins, Zap } from 'lucide-react';
 import { Credits } from './pages/Credits';
 import { PaymentSuccess } from './pages/PaymentSuccess';
 import { CreditBalance } from './components/CreditBalance';
-import { useEffect, useState } from 'react';
-import { supabase } from './lib/supabase';
 
 function App() {
   const [user, setUser] = useState<any>(null);
