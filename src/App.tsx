@@ -209,13 +209,7 @@ function HomePage({ user }: { user: any }) {
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Fast Generation</h3>
           <p className="text-gray-600">Create professional logos in seconds with our AI technology.</p>
-        currentUser={currentUser}
-        onAuthClick={() => setShowAuthModal(true)}
-        onSignOut={handleSignOut}
-      />
-
-      {currentView === 'home' && (
-        <HomePage
+        </div>
         
         <div className="text-center p-6">
           <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mx-auto mb-4">
@@ -231,8 +225,8 @@ function HomePage({ user }: { user: any }) {
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">High Quality</h3>
           <p className="text-gray-600">Get professional-grade logos ready for commercial use.</p>
-        onAuthSuccess={handleAuthSuccess}
-      />
+        </div>
+      </div>
     </div>
   );
 }
