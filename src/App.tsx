@@ -7,6 +7,7 @@ import { Coins, Zap } from 'lucide-react';
 import { Credits } from './pages/Credits';
 import { PaymentSuccess } from './pages/PaymentSuccess';
 import { CreditBalance } from './components/CreditBalance';
+import { apiKeyManager } from './services/apiKeyManager';
 
 function App() {
   const [user, setUser] = useState<any>(null);
@@ -16,14 +17,16 @@ function App() {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
+      await apiKeyManager.initializeForUser(user?.id || null);
       setLoading(false);
     };
 
     getUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setUser(session?.user ?? null);
+        await apiKeyManager.initializeForUser(session?.user?.id || null);
       }
     );
 

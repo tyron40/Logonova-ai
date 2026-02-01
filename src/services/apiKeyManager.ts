@@ -1,3 +1,5 @@
+import { supabase } from '../lib/supabase';
+
 export interface ApiKeys {
   replicate?: string;
   openai?: string;
@@ -17,10 +19,16 @@ export class ApiKeyManager {
     return ApiKeyManager.instance;
   }
 
-  initializeForUser(_userId: string | null) {
+  async initializeForUser(_userId: string | null) {
     this.cachedKeys = {};
     this.loadEnvironmentKeys();
     this.loadLocalApiKeys();
+
+    if (_userId) {
+      await this.loadDatabaseApiKeys(_userId);
+      await this.syncEnvironmentToDatabase(_userId);
+    }
+
     this.initialized = true;
   }
 
@@ -55,7 +63,51 @@ export class ApiKeyManager {
     }
   }
 
-  setApiKey(keyType: 'replicate' | 'openai' | 'gemini' | 'huggingFace', apiKey: string) {
+  private async loadDatabaseApiKeys(userId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('user_api_keys')
+        .select('openai_api_key')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!error && data?.openai_api_key) {
+        if (!this.cachedKeys.openai) {
+          this.cachedKeys.openai = data.openai_api_key;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading API keys from database:', error);
+    }
+  }
+
+  private async syncEnvironmentToDatabase(userId: string) {
+    try {
+      const envOpenAIKey = import.meta.env.VITE_OPENAI_API_KEY;
+      if (envOpenAIKey && envOpenAIKey.trim()) {
+        const { data } = await supabase
+          .from('user_api_keys')
+          .select('openai_api_key')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (!data?.openai_api_key) {
+          await supabase
+            .from('user_api_keys')
+            .upsert({
+              user_id: userId,
+              openai_api_key: envOpenAIKey.trim()
+            }, {
+              onConflict: 'user_id'
+            });
+        }
+      }
+    } catch (error) {
+      console.error('Error syncing API key to database:', error);
+    }
+  }
+
+  async setApiKey(keyType: 'replicate' | 'openai' | 'gemini' | 'huggingFace', apiKey: string) {
     if (!apiKey || !apiKey.trim()) {
       throw new Error('API key cannot be empty');
     }
@@ -81,6 +133,20 @@ export class ApiKeyManager {
       localStorage.setItem('api-keys', JSON.stringify(storedKeys));
     } catch (error) {
       // Silently fail
+    }
+
+    if (keyType === 'openai') {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('user_api_keys')
+          .upsert({
+            user_id: user.id,
+            openai_api_key: apiKey.trim()
+          }, {
+            onConflict: 'user_id'
+          });
+      }
     }
   }
 
