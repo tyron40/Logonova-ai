@@ -9,7 +9,7 @@ import { apiKeyManager } from './services/apiKeyManager';
 import type { User } from '@supabase/supabase-js';
 
 type View = 'home' | 'generator' | 'pricing';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { Coins, Zap } from 'lucide-react';
 import { Credits } from './pages/Credits';
 import { PaymentSuccess } from './pages/PaymentSuccess';
@@ -109,122 +109,93 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
-        <nav className="bg-white shadow-sm border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center">
-                <Link to="/" className="flex items-center gap-2">
-                  <Zap className="w-8 h-8 text-indigo-600" />
-                  <span className="text-xl font-bold text-gray-900">LogoNova</span>
-                </Link>
-              </div>
-              
-              <div className="flex items-center gap-6">
-                {user ? (
-                  <>
-                    <CreditBalance userId={user.id} />
-                    <Link
-                      to="/credits"
-                      className="text-gray-700 hover:text-indigo-600 font-medium flex items-center gap-1"
-                    >
-                      <Coins className="w-4 h-4" />
-                      Buy Credits
-                    </Link>
-                  </>
-                ) : (
-                  <button
-                    onClick={async () => {
-                      await supabase.auth.signInWithOAuth({
-                        provider: 'google',
-                        options: {
-                          redirectTo: window.location.origin
-                        }
-                      });
-                    }}
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-                  >
-                    Sign In
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </nav>
-
-        <Routes>
-          <Route path="/" element={<HomePage user={user} />} />
-          <Route path="/credits" element={<Credits />} />
-          <Route path="/success" element={<PaymentSuccess />} />
-        </Routes>
-      </div>
+      <AppContent user={user} />
     </Router>
   );
 }
 
-function HomePage({ user }: { user: any }) {
+function AppContent({ user }: { user: any }) {
+  const navigate = useNavigate();
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-16">
-      <div className="text-center">
-        <h1 className="text-5xl font-bold text-gray-900 mb-6">
-          Create Amazing Logos with AI
-        </h1>
-        <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-          Generate professional logos in seconds using our AI-powered platform. 
-          Purchase credits and start creating today.
-        </p>
-        
-        {user ? (
-          <div className="flex items-center justify-center gap-4">
-            <Link
-              to="/credits"
-              className="bg-indigo-600 text-white px-8 py-3 rounded-lg hover:bg-indigo-700 transition-colors text-lg font-semibold"
-            >
-              Buy Credits
-            </Link>
+    <div className="min-h-screen bg-gray-50">
+      <nav className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <Link to="/" className="flex items-center gap-2">
+                <Zap className="w-8 h-8 text-indigo-600" />
+                <span className="text-xl font-bold text-gray-900">LogoNova</span>
+              </Link>
+            </div>
+
+            <div className="flex items-center gap-6">
+              {user ? (
+                <>
+                  <CreditBalance userId={user.id} />
+                  <Link
+                    to="/generate"
+                    className="text-gray-700 hover:text-indigo-600 font-medium"
+                  >
+                    Generate
+                  </Link>
+                  <Link
+                    to="/credits"
+                    className="text-gray-700 hover:text-indigo-600 font-medium flex items-center gap-1"
+                  >
+                    <Coins className="w-4 h-4" />
+                    Buy Credits
+                  </Link>
+                </>
+              ) : (
+                <button
+                  onClick={async () => {
+                    await supabase.auth.signInWithOAuth({
+                      provider: 'google',
+                      options: {
+                        redirectTo: window.location.origin
+                      }
+                    });
+                  }}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  Sign In
+                </button>
+              )}
+            </div>
           </div>
-        ) : (
-          <button
-            onClick={async () => {
-              await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                  redirectTo: window.location.origin
-                }
-              });
-            }}
-            className="bg-indigo-600 text-white px-8 py-3 rounded-lg hover:bg-indigo-700 transition-colors text-lg font-semibold"
-          >
-            Get Started
-          </button>
-        )}
-      </div>
-      
-      <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="text-center p-6">
-          <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-            <Zap className="w-6 h-6 text-indigo-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Fast Generation</h3>
-          <p className="text-gray-600">Create professional logos in seconds with our AI technology.</p>
         </div>
-        
-        <div className="text-center p-6">
-          <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-            <Coins className="w-6 h-6 text-indigo-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Flexible Pricing</h3>
-          <p className="text-gray-600">Pay only for what you use with our credit-based system.</p>
-        </div>
-        
-        <div className="text-center p-6">
-          <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-            <Zap className="w-6 h-6 text-indigo-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">High Quality</h3>
-          <p className="text-gray-600">Get professional-grade logos ready for commercial use.</p>
-        </div>
-      </div>
+      </nav>
+
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <HomePage
+              onStartGenerating={() => navigate(user ? '/generate' : '/credits')}
+              onViewPlans={() => navigate('/credits')}
+            />
+          }
+        />
+        <Route
+          path="/generate"
+          element={
+            <LogoGenerator
+              currentUser={user}
+              onAuthRequired={() => {
+                supabase.auth.signInWithOAuth({
+                  provider: 'google',
+                  options: {
+                    redirectTo: window.location.origin + '/generate'
+                  }
+                });
+              }}
+            />
+          }
+        />
+        <Route path="/credits" element={<Credits />} />
+        <Route path="/success" element={<PaymentSuccess />} />
+      </Routes>
     </div>
   );
 }
