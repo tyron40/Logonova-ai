@@ -1,135 +1,263 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Header } from './components/Header';
 import { HomePage } from './components/HomePage';
 import LogoGenerator from './components/LogoGenerator';
-import { supabase } from './services/supabase';
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
-import { Coins, Zap } from 'lucide-react';
-import { Credits } from './pages/Credits';
-import { PaymentSuccess } from './pages/PaymentSuccess';
-import { CreditBalance } from './components/CreditBalance';
+import { ApiKeyModal } from './components/ApiKeyModal';
+import { AuthModal } from './components/AuthModal';
+import { SubscriptionPlans } from './components/SubscriptionPlans';
+import { SuccessPage } from './components/SuccessPage';
+import { CreditsPurchaseModal } from './components/CreditsPurchaseModal';
+import { AccountSettings } from './components/AccountSettings';
+import { stripeService } from './services/stripeService';
 import { apiKeyManager } from './services/apiKeyManager';
+import { supabaseService, supabase } from './services/supabase';
+import type { User, Subscription } from './types';
 
 function App() {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [currentView, setCurrentView] = useState<'home' | 'generator' | 'plans' | 'success'>('home');
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showCreditModal, setShowCreditModal] = useState(false);
+  const [showAccountSettings, setShowAccountSettings] = useState(false);
+  const [hasApiKey, setHasApiKey] = useState(true);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
+  const [userSubscription, setUserSubscription] = useState<Subscription | null>(null);
 
+  // Check for success page on load
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      await apiKeyManager.initializeForUser(user?.id || null);
-      setLoading(false);
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session_id');
+    if (sessionId) {
+      setCurrentView('success');
+      // Credit processing now handled in SuccessPage component after verification
+    }
+  }, [currentUser]);
+
+  // Initialize app and check authentication
+  useEffect(() => {
+    const initializeApp = async () => {
+      // Set a maximum timeout for initialization (5 seconds)
+      const initTimeout = setTimeout(() => {
+        console.warn('Initialization timeout - forcing app to load');
+        setIsLoading(false);
+      }, 5000);
+
+      try {
+        let user = null;
+
+        // Check if Supabase is properly configured
+        if (supabase) {
+          try {
+            // Only check current user if Supabase is available
+            user = await supabaseService.getCurrentUser();
+            setCurrentUser(user);
+          } catch (userError) {
+            console.warn('Could not fetch user, continuing without auth:', userError);
+          }
+        }
+
+        // Initialize API key manager
+        try {
+          await apiKeyManager.initializeForUser(user?.id || null);
+          const hasOpenAIKey = apiKeyManager.hasApiKey('openai');
+          setHasApiKey(hasOpenAIKey);
+        } catch (apiKeyError) {
+          console.warn('API key initialization failed, continuing:', apiKeyError);
+          setHasApiKey(false);
+        }
+      } catch (error) {
+        console.error('Error initializing app:', error);
+        // Don't block the app from loading, just log the error
+        setHasApiKey(false);
+      } finally {
+        // Clear the timeout and always set loading to false
+        clearTimeout(initTimeout);
+        setIsLoading(false);
+      }
     };
 
-    getUser();
+    initializeApp();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null);
-        await apiKeyManager.initializeForUser(session?.user?.id || null);
+    // Listen for auth changes
+    let subscription: any = null;
+
+    if (supabase) {
+      const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        const user = session?.user || null;
+
+        setCurrentUser(user);
+
+        // Reinitialize API key manager on meaningful auth state changes
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
+          try {
+            await apiKeyManager.initializeForUser(user?.id || null);
+            setHasApiKey(apiKeyManager.hasApiKey('openai'));
+          } catch (error) {
+            setHasApiKey(apiKeyManager.hasApiKey('openai'));
+          }
+        }
+      });
+
+      subscription = data.subscription;
+    }
+
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe();
       }
-    );
-
-    return () => subscription.unsubscribe();
+    };
   }, []);
 
-  if (loading) {
+  const handleStartGenerating = () => {
+    setCurrentView('generator');
+  };
+
+  const handleApiKeySet = async (apiKey: string) => {
+    try {
+      await apiKeyManager.setApiKey('openai', apiKey);
+      setHasApiKey(apiKeyManager.hasApiKey('openai'));
+      setShowApiKeyModal(false);
+    } catch (error) {
+      console.error('Error setting API key:', error);
+    }
+  };
+
+  const handleOpenApiKeyModal = () => {
+    setShowApiKeyModal(true);
+  };
+
+  const handleAuthSuccess = async (user: User) => {
+    setCurrentUser(user);
+    setShowAuthModal(false);
+
+    // Database trigger automatically gives 100 credits to new users
+    // No need for manual credit management here
+
+    setHasApiKey(apiKeyManager.hasApiKey('openai'));
+  };
+
+  const handleSignOut = async () => {
+    try {
+      console.log('Signing out user...');
+      const { error } = await supabaseService.signOut();
+
+      if (error) {
+        console.error('Sign out error:', error);
+        alert('Failed to sign out. Please try again.');
+        return;
+      }
+
+      setCurrentUser(null);
+      apiKeyManager.initializeForUser(null);
+      setHasApiKey(false);
+      console.log('User signed out successfully');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      alert('An error occurred while signing out. Please try again.');
+    }
+  };
+
+  const handlePurchaseCredits = () => {
+    if (!currentUser) {
+      setShowAuthModal(true);
+      return;
+    }
+    setShowCreditModal(true);
+  };
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case 'home':
+        return <HomePage onStartGenerating={handleStartGenerating} />;
+      case 'generator':
+        return (
+          <LogoGenerator
+            currentUser={currentUser}
+            onPurchaseCredits={handlePurchaseCredits}
+          />
+        );
+      case 'success':
+        return (
+          <SuccessPage
+            onNavigateHome={() => setCurrentView('home')}
+            onNavigateGenerator={() => setCurrentView('generator')}
+            currentUser={currentUser}
+          />
+        );
+      default:
+        return <HomePage onStartGenerating={handleStartGenerating} />;
+    }
+  };
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          </div>
+          <h3 className="text-xl font-semibold text-white mb-2">Loading LogoAI</h3>
+          <p className="text-gray-400">Initializing your creative workspace...</p>
+          {initError && (
+            <p className="text-red-400 text-sm mt-2">{initError}</p>
+          )}
+        </div>
       </div>
     );
   }
 
-  return (
-    <Router>
-      <AppContent user={user} />
-    </Router>
-  );
-}
-
-function AppContent({ user }: { user: any }) {
-  const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link to="/" className="flex items-center gap-2">
-                <Zap className="w-8 h-8 text-indigo-600" />
-                <span className="text-xl font-bold text-gray-900">LogoNova</span>
-              </Link>
-            </div>
-
-            <div className="flex items-center gap-6">
-              {user ? (
-                <>
-                  <CreditBalance userId={user.id} />
-                  <Link
-                    to="/generate"
-                    className="text-gray-700 hover:text-indigo-600 font-medium"
-                  >
-                    Generate
-                  </Link>
-                  <Link
-                    to="/credits"
-                    className="text-gray-700 hover:text-indigo-600 font-medium flex items-center gap-1"
-                  >
-                    <Coins className="w-4 h-4" />
-                    Buy Credits
-                  </Link>
-                </>
-              ) : (
-                <button
-                  onClick={async () => {
-                    await supabase.auth.signInWithOAuth({
-                      provider: 'google',
-                      options: {
-                        redirectTo: window.location.origin
-                      }
-                    });
-                  }}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                  Sign In
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <HomePage
-              onStartGenerating={() => navigate(user ? '/generate' : '/credits')}
-              onViewPlans={() => navigate('/credits')}
-            />
-          }
+    <div className="min-h-screen bg-black">
+      <Header 
+        currentView={currentView} 
+        onViewChange={setCurrentView}
+        currentUser={currentUser}
+        onSignOut={handleSignOut}
+        onShowAuth={() => setShowAuthModal(true)}
+        onPurchaseCredits={handlePurchaseCredits}
+        onShowAccountSettings={() => setShowAccountSettings(true)}
+      />
+      {renderCurrentView()}
+      
+      {/* API Key Modal */}
+      {showApiKeyModal && (
+        <ApiKeyModal
+          isOpen={showApiKeyModal}
+          onApiKeySet={handleApiKeySet}
+          onClose={() => setShowApiKeyModal(false)}
         />
-        <Route
-          path="/generate"
-          element={
-            <LogoGenerator
-              currentUser={user}
-              onAuthRequired={() => {
-                supabase.auth.signInWithOAuth({
-                  provider: 'google',
-                  options: {
-                    redirectTo: window.location.origin + '/generate'
-                  }
-                });
-              }}
-            />
-          }
+      )}
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onAuthSuccess={handleAuthSuccess}
         />
-        <Route path="/credits" element={<Credits />} />
-        <Route path="/success" element={<PaymentSuccess />} />
-      </Routes>
+      )}
+
+      {/* Credits Purchase Modal */}
+      {showCreditModal && (
+        <CreditsPurchaseModal
+          isOpen={showCreditModal}
+          onClose={() => setShowCreditModal(false)}
+          userEmail={currentUser?.email}
+        />
+      )}
+
+      {/* Account Settings Modal */}
+      {showAccountSettings && (
+        <AccountSettings
+          isOpen={showAccountSettings}
+          onClose={() => setShowAccountSettings(false)}
+          currentUser={currentUser}
+          onSignOut={handleSignOut}
+        />
+      )}
     </div>
   );
 }

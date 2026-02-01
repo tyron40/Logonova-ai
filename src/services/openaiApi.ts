@@ -21,18 +21,16 @@ export class OpenAILogoService {
 
   async generateLogo(request: LogoGenerationRequest): Promise<string> {
     try {
-      if (!supabase) {
-        throw new Error("Authentication required. Please sign in to generate logos.");
-      }
-
+      // Get the current session
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session) {
-        throw new Error("You must be logged in to generate logos. Please sign in.");
+        throw new Error("You must be logged in to generate logos");
       }
 
-      const apiBaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const apiUrl = `${apiBaseUrl}/functions/v1/generate-logo-with-credits`;
+      // Call the Vercel API
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+      const apiUrl = `${apiBaseUrl}/api/generate-logo-with-credits`;
 
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -58,18 +56,14 @@ export class OpenAILogoService {
 
   async generateBusinessKeywords(companyName: string, description: string): Promise<string> {
     try {
-      if (!supabase) {
-        throw new Error("Authentication required. Please sign in to use AI enhancement.");
-      }
-
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError || !session) {
-        throw new Error("You must be logged in to use AI enhancement. Please sign in.");
+        throw new Error("You must be logged in to use AI enhancement");
       }
 
-      const apiBaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const apiUrl = `${apiBaseUrl}/functions/v1/enhance-description`;
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+      const apiUrl = `${apiBaseUrl}/api/enhance-description`;
 
       const response = await fetch(apiUrl, {
         method: "POST",

@@ -67,16 +67,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Check user has credits and get API key
-    const { data: userApiData, error: apiKeyError } = await supabase
+    // Check user has credits
+    const { data: apiKey, error: apiKeyError } = await supabase
       .from("user_api_keys")
-      .select("credit_balance, openai_api_key")
+      .select("credit_balance")
       .eq("user_id", user.id)
       .maybeSingle();
 
     if (apiKeyError) {
       return new Response(
-        JSON.stringify({ error: "Failed to fetch user data" }),
+        JSON.stringify({ error: "Failed to fetch user credits" }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -84,7 +84,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const currentCredits = userApiData?.credit_balance ?? 0;
+    const currentCredits = apiKey?.credit_balance ?? 0;
 
     if (currentCredits < 1) {
       return new Response(
@@ -96,20 +96,20 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Use user's OpenAI API key from database
-    const openaiApiKey = userApiData?.openai_api_key;
+    // Parse request body
+    const requestData: LogoGenerationRequest = await req.json();
+
+    // Get OpenAI API key from environment
+    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
     if (!openaiApiKey) {
       return new Response(
-        JSON.stringify({ error: "OpenAI API key not configured. Please add your API key in account settings." }),
+        JSON.stringify({ error: "OpenAI API key not configured" }),
         {
-          status: 400,
+          status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
-
-    // Parse request body
-    const requestData: LogoGenerationRequest = await req.json();
 
     // Build the logo prompt
     const prompt = buildLogoPrompt(requestData);

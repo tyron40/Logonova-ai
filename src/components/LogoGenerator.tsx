@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
-import { Wand2, Download, Loader2, Sparkles, RefreshCw, Lightbulb, Eye, X, AlertTriangle } from 'lucide-react';
+import { Wand2, Download, Loader2, Sparkles, RefreshCw, Lightbulb, Eye, X } from 'lucide-react';
 import { openaiLogoService } from '../services/openaiApi';
-import type { User } from '@supabase/supabase-js';
+import { SubscriptionPlans } from './SubscriptionPlans';
+import { CreditDisplay } from './CreditDisplay';
+import { supabase } from '../services/supabase';
+import { apiKeyManager } from '../services/apiKeyManager';
 
 interface LogoGeneratorProps {
-  currentUser: User | null;
-  onAuthRequired: () => void;
+  currentUser?: any;
+  onPurchaseCredits: () => void;
 }
 
-export default function LogoGenerator({ currentUser, onAuthRequired }: LogoGeneratorProps) {
+export default function LogoGenerator({
+  currentUser,
+  onPurchaseCredits
+}: LogoGeneratorProps) {
   const [companyName, setCompanyName] = useState('');
   const [description, setDescription] = useState('');
   const [style, setStyle] = useState('modern');
@@ -18,7 +24,27 @@ export default function LogoGenerator({ currentUser, onAuthRequired }: LogoGener
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [error, setError] = useState('');
+  const [credits, setCredits] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
+
+  React.useEffect(() => {
+    if (currentUser?.id) {
+      updateCredits();
+    }
+  }, [currentUser]);
+
+  const updateCredits = async () => {
+    if (!currentUser?.id) return;
+
+    const { data: apiKeyData } = await supabase
+      .from('user_api_keys')
+      .select('credit_balance')
+      .eq('user_id', currentUser.id)
+      .maybeSingle();
+
+    const balance = apiKeyData?.credit_balance ?? 0;
+    setCredits(balance);
+  };
 
   // Simple options
 
@@ -65,11 +91,6 @@ export default function LogoGenerator({ currentUser, onAuthRequired }: LogoGener
       return;
     }
 
-    if (!currentUser) {
-      onAuthRequired();
-      return;
-    }
-
     setError('');
     setIsGenerating(true);
 
@@ -86,16 +107,12 @@ export default function LogoGenerator({ currentUser, onAuthRequired }: LogoGener
       const logoUrl = await openaiLogoService.generateLogo(logoRequest);
       setLogoUrl(logoUrl);
       setError('');
+      updateCredits();
     } catch (error) {
       console.error('Error generating logo:', error);
       let errorMessage = 'Failed to generate logo. Please try again.';
       if (error instanceof Error) {
-        if (error.message.includes('logged in') || error.message.includes('sign in')) {
-          onAuthRequired();
-          return;
-        } else if (error.message.includes('Insufficient credits')) {
-          errorMessage = 'Insufficient credits. Please purchase more credits to continue generating logos.';
-        } else if (error.message.includes('fetch')) {
+        if (error.message.includes('fetch')) {
           errorMessage = 'Unable to connect to AI service. Please check your internet connection.';
         } else if (error.message.includes('rate limit')) {
           errorMessage = 'AI service is busy. Please wait a moment and try again.';
@@ -104,6 +121,7 @@ export default function LogoGenerator({ currentUser, onAuthRequired }: LogoGener
         }
       }
       setError(errorMessage);
+      updateCredits();
     } finally {
       setIsGenerating(false);
     }
@@ -115,11 +133,6 @@ export default function LogoGenerator({ currentUser, onAuthRequired }: LogoGener
       return;
     }
 
-    if (!currentUser) {
-      onAuthRequired();
-      return;
-    }
-
     setIsEnhancing(true);
     setError('');
 
@@ -128,15 +141,12 @@ export default function LogoGenerator({ currentUser, onAuthRequired }: LogoGener
         companyName.trim(),
         description.trim() || 'Professional business'
       );
-
+      
+      // Use the enhanced keywords as an improved description
       setDescription(enhanced);
     } catch (error) {
       console.error('Error enhancing description:', error);
-      if (error instanceof Error && (error.message.includes('logged in') || error.message.includes('sign in'))) {
-        onAuthRequired();
-      } else {
-        setError(error instanceof Error ? error.message : 'Failed to enhance description');
-      }
+      setError(error instanceof Error ? error.message : 'Failed to enhance description');
     } finally {
       setIsEnhancing(false);
     }
@@ -200,6 +210,14 @@ export default function LogoGenerator({ currentUser, onAuthRequired }: LogoGener
           </p>
         </div>
 
+        {/* Credit Display */}
+        <div className="mb-8">
+          <CreditDisplay 
+            currentUser={currentUser}
+            onPurchaseClick={onPurchaseCredits}
+            compact={true}
+          />
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Simple Form */}
           <div className="bg-gray-800/50 backdrop-blur-lg rounded-3xl p-8 border border-gray-700/50">
@@ -367,17 +385,22 @@ export default function LogoGenerator({ currentUser, onAuthRequired }: LogoGener
                 ) : (
                   <>
                     <Wand2 className="w-6 h-6" />
-                    <span>Generate Logo</span>
+                    <span>Generate Logo (1 Credit)</span>
                   </>
                 )}
               </button>
 
               {error && (
-                <div className="bg-red-500/10 border border-red-400/30 rounded-xl p-4">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-400 leading-relaxed">{error}</p>
-                  </div>
+                <div className="bg-red-500/10 border border-red-400/30 text-red-400 px-4 py-3 rounded-xl text-sm">
+                  {error}
+                  {error.includes('Insufficient credits') && (
+                    <button
+                      onClick={onPurchaseCredits}
+                      className="block mt-2 text-blue-300 underline hover:text-blue-200 transition-colors"
+                    >
+                      Purchase more credits →
+                    </button>
+                  )}
                 </div>
               )}
             </div>

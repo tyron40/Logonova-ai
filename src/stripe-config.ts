@@ -3,58 +3,67 @@ export interface StripeProduct {
   priceId: string;
   name: string;
   description: string;
+  credits: number;
   price: number;
   currency: string;
   mode: 'payment' | 'subscription';
-  credits: number;
+  popular?: boolean;
 }
 
 export const stripeProducts: StripeProduct[] = [
   {
-    id: 'prod_TeLeQvEcL6Mvx6',
-    priceId: 'price_1Sh2xdLkzHXwN84vuD2S6iF6',
-    name: '150 Credits',
-    description: '150 credits',
-    price: 5000, // in cents
+    id: 'prod_TeLcVEKzMKRGiP',
+    priceId: 'price_1Sh2v2LkzHXwN84vL4NqUfO7',
+    name: '10 Credits',
+    description: 'Perfect for trying out our service',
+    credits: 10,
+    price: 5.00,
     currency: 'usd',
     mode: 'payment',
-    credits: 150,
-  },
-  {
-    id: 'prod_TeLeLMpbgCub5j',
-    priceId: 'price_1Sh2wuLkzHXwN84vp1Og2GmI',
-    name: '55 Credits',
-    description: '55 credits',
-    price: 2000, // in cents
-    currency: 'usd',
-    mode: 'payment',
-    credits: 55,
+    popular: false
   },
   {
     id: 'prod_TeLdw8nszDOeSB',
     priceId: 'price_1Sh2w9LkzHXwN84v8ZD66X1d',
     name: '25 Credits',
-    description: '25 credits',
-    price: 1000, // in cents
+    description: 'Great for small projects',
+    credits: 25,
+    price: 10.00,
     currency: 'usd',
     mode: 'payment',
-    credits: 25,
+    popular: false
   },
   {
-    id: 'prod_TeLcVEKzMKRGiP',
-    priceId: 'price_1Sh2v2LkzHXwN84vL4NqUfO7',
-    name: '10 Credits',
-    description: '10 credits',
-    price: 500, // in cents
+    id: 'prod_TeLeLMpbgCub5j',
+    priceId: 'price_1Sh2wuLkzHXwN84vp1Og2GmI',
+    name: '55 Credits',
+    description: 'Most popular choice for regular users',
+    credits: 55,
+    price: 20.00,
     currency: 'usd',
     mode: 'payment',
-    credits: 10,
+    popular: true
   },
+  {
+    id: 'prod_TeLeQvEcL6Mvx6',
+    priceId: 'price_1Sh2xdLkzHXwN84vuD2S6iF6',
+    name: '150 Credits',
+    description: 'Best value for power users',
+    credits: 150,
+    price: 50.00,
+    currency: 'usd',
+    mode: 'payment',
+    popular: false
+  }
 ];
 
-export const formatPrice = (price: number, currency: string): string => {
+export const getProductByPriceId = (priceId: string): StripeProduct | undefined => {
+  return stripeProducts.find(product => product.priceId === priceId);
+};
+
+export const formatPrice = (price: number, currency: string = 'usd'): string => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency.toUpperCase(),
-  }).format(price / 100);
+  }).format(price);
 };
