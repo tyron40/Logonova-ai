@@ -267,8 +267,8 @@ function buildLogoPrompt(req: LogoGenerationRequest): string {
   const styleInfo = getStyleModifiers(style);
   const colors = getColorPalette(colorScheme);
 
-  // Build a concise, direct prompt like ChatGPT would use
-  return `A single professional logo design for "${companyName}". ${description}. ${styleInfo}. ${colors}. Industry: ${industry}. ${keywords.length > 0 ? `Brand values: ${keywords.join(", ")}.` : ""} The logo should be centered on a clean background. No mockups, no variations, no business cards, no multiple versions - just one clean logo design. Vector style, modern and professional.`.trim();
+  // Build a concise, direct prompt optimized for single clean logo output
+  return `Create a single, professional logo for "${companyName}". ${description}. Style: ${styleInfo}. Colors: ${colors}. Industry: ${industry}. ${keywords.length > 0 ? `Key attributes: ${keywords.join(", ")}.` : ""} IMPORTANT: Output must be ONE clean logo mark centered on a solid background. Absolutely no mockups, no product presentations, no business cards, no phone screens, no multiple versions, no 3D renders. Just the logo itself - clean, centered, professional, vector-style design on a simple solid color background.`.trim();
 }
 
 function getStyleModifiers(style: string): string {
