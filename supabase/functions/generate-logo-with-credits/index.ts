@@ -68,7 +68,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Check if user is admin
-    const adminEmail = Deno.env.get("VITE_ADMIN_EMAIL") || "admin@logoai.com";
+    const adminEmail = Deno.env.get("ADMIN_EMAIL") || Deno.env.get("VITE_ADMIN_EMAIL") || "robertstyron40@gmail.com";
     const isAdmin = user.email === adminEmail;
 
     // Check user has credits (skip for admin)

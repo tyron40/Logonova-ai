@@ -93,7 +93,7 @@ export class CreditService {
 
   isAdmin(): boolean {
     try {
-      const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'admin@logoai.com';
+      const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'robertstyron40@gmail.com';
       const currentUser = localStorage.getItem('logoai-current-user-email');
       return currentUser === adminEmail;
     } catch {

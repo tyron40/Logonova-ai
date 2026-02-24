@@ -20,7 +20,7 @@ export const CreditDisplay: React.FC<CreditDisplayProps> = ({
 
   useEffect(() => {
     // Check if user is admin
-    const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'admin@logoai.com';
+    const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'robertstyron40@gmail.com';
     setIsAdmin(currentUser?.email === adminEmail);
 
     if (currentUser?.id) {
