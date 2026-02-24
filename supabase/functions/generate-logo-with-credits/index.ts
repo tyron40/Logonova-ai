@@ -256,81 +256,9 @@ function buildLogoPrompt(req: LogoGenerationRequest): string {
 
   const styleInfo = getStyleModifiers(style);
   const colors = getColorPalette(colorScheme);
-  const industryImagery = getIndustrySpecificImagery(description);
 
-  return `
-You are a world-class brand identity designer creating a single logo for a real client.
-
-==============================
-BUSINESS CONTEXT
-==============================
-Business Name: "${companyName}"
-Industry: ${industry}
-Description: ${description}
-Brand Attributes: ${keywords.join(", ") || "clear, memorable, professional"}
-
-==============================
-DESIGN GOAL
-==============================
-Create ONE (1) finished, production-ready logo for "${companyName}" that:
-• looks clean, modern, and professional,
-• works as a standalone mark on websites, apps, and merchandise,
-• feels instantly recognizable and memorable.
-
-Style: ${styleInfo}
-Color Palette: ${colors}
-
-Suggested symbolic imagery (optional but coherent):
-• ${industryImagery.join(", ") || "industry-appropriate simple symbol"}
-
-==============================
-HARD STRUCTURE RULES (NON-NEGOTIABLE)
-==============================
-• The image MUST contain EXACTLY ONE logo in the center of the canvas.
-• The logo must be a flat, vector-style design with crisp lines and smooth curves.
-• The composition must be a SINGLE compact logo unit, not a layout or poster.
-• The canvas must NOT be split into panels, halves, or sections.
-• Do NOT create rows of icons, extra symbols, or brand sheets.
-• Do NOT place multiple versions of the logo anywhere in the image.
-• Keep generous clean space around the logo; no cluttered edges.
-
-==============================
-TEXT RULES (NON-NEGOTIABLE)
-==============================
-• The visible text MUST be exactly: "${companyName}".
-• Spell "${companyName}" perfectly — no typos, no alternate spellings.
-• Do NOT use initials or monograms instead of the full name.
-• Do NOT add taglines or generic words like "professional", "brand", "studio", etc.
-• No placeholder text, lorem ipsum, or random characters.
-• There must be NO other words or numbers besides "${companyName}".
-
-TEXT TO RENDER (STRICT):
-"${companyName}"
-
-==============================
-FORBIDDEN ELEMENTS (NEGATIVE PROMPT)
-==============================
-Do NOT include any of the following:
-• mockups, stationery, business cards, posters, signage, billboards
-• t-shirts, hats, packaging, boxes, bags, stickers, labels
-• photos of paper, notebooks, or any physical object
-• UI screens, app windows, device frames, buttons
-• multiple logos, thumbnails, grids, alternate variations, or icon rows
-• separate decorative icons under or above the logo
-• complex scenes, environments, rooms, or backgrounds with objects
-• people, hands, bodies, faces, or characters
-• watermarks, QR codes, barcodes, tiny legal text
-• random letters, misspelled text, or meaningless symbols
-
-==============================
-FINAL OUTPUT
-==============================
-Produce ONE centered logo for "${companyName}" on a plain or subtle gradient background:
-• clean vector-like rendering,
-• sharp and readable text,
-• coherent symbolism related to ${industry || "the business"},
-• polished, balanced, and ready to use as a brand logo.
-`.trim();
+  // Build a concise, direct prompt like ChatGPT would use
+  return `A single professional logo design for "${companyName}". ${description}. ${styleInfo}. ${colors}. Industry: ${industry}. ${keywords.length > 0 ? `Brand values: ${keywords.join(", ")}.` : ""} The logo should be centered on a clean background. No mockups, no variations, no business cards, no multiple versions - just one clean logo design. Vector style, modern and professional.`.trim();
 }
 
 function getStyleModifiers(style: string): string {
