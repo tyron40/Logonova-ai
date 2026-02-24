@@ -83,8 +83,22 @@ export class CreditService {
   // ===========================
 
   getCreditBalance(userId?: string): number {
+    // Check if user is admin - admins get unlimited credits
+    if (this.isAdmin()) {
+      return 999999;
+    }
     const data = this.getCreditData(userId);
     return Math.max(0, data.balance);
+  }
+
+  isAdmin(): boolean {
+    try {
+      const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'admin@logoai.com';
+      const currentUser = localStorage.getItem('logoai-current-user-email');
+      return currentUser === adminEmail;
+    } catch {
+      return false;
+    }
   }
 
   getCreditHistory(userId?: string): CreditTransaction[] {
@@ -173,6 +187,12 @@ export class CreditService {
 
   deductCredits(amount: number, description: string, userId?: string): boolean {
     try {
+      // Admins don't have credits deducted
+      if (this.isAdmin()) {
+        console.log("Admin user - no credits deducted");
+        return true;
+      }
+
       const data = this.getCreditData(userId);
 
       if (data.balance < amount) {
@@ -201,6 +221,10 @@ export class CreditService {
   }
 
   hasEnoughCredits(amount: number, userId?: string): boolean {
+    // Admins always have enough credits
+    if (this.isAdmin()) {
+      return true;
+    }
     return this.getCreditBalance(userId) >= amount;
   }
 

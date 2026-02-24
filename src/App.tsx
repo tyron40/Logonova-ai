@@ -53,6 +53,11 @@ function App() {
             // Only check current user if Supabase is available
             user = await supabaseService.getCurrentUser();
             setCurrentUser(user);
+
+            // Store user email in localStorage for admin check persistence
+            if (user?.email) {
+              localStorage.setItem('logoai-current-user-email', user.email);
+            }
           } catch (userError) {
             console.warn('Could not fetch user, continuing without auth:', userError);
           }
@@ -89,6 +94,13 @@ function App() {
         const user = session?.user || null;
 
         setCurrentUser(user);
+
+        // Store user email in localStorage for admin check persistence
+        if (user?.email) {
+          localStorage.setItem('logoai-current-user-email', user.email);
+        } else {
+          localStorage.removeItem('logoai-current-user-email');
+        }
 
         // Reinitialize API key manager on meaningful auth state changes
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
@@ -153,6 +165,7 @@ function App() {
       setCurrentUser(null);
       apiKeyManager.initializeForUser(null);
       setHasApiKey(false);
+      localStorage.removeItem('logoai-current-user-email');
       console.log('User signed out successfully');
     } catch (error) {
       console.error('Error signing out:', error);

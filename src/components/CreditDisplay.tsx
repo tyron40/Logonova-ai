@@ -16,8 +16,13 @@ export const CreditDisplay: React.FC<CreditDisplayProps> = ({
   const [credits, setCredits] = useState(0);
   const [showHistory, setShowHistory] = useState(false);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    // Check if user is admin
+    const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'admin@logoai.com';
+    setIsAdmin(currentUser?.email === adminEmail);
+
     if (currentUser?.id) {
       updateCredits();
     }
@@ -68,19 +73,21 @@ export const CreditDisplay: React.FC<CreditDisplayProps> = ({
   if (compact) {
     return (
       <div className="flex items-center space-x-2">
-        <div className={`flex items-center space-x-2 px-3 py-2 rounded-xl border ${getCreditBgColor()}`}>
-          <Coins className={`w-4 h-4 ${getCreditColor()}`} />
-          <span className={`font-medium ${getCreditColor()}`}>
-            {credits}
+        <div className={`flex items-center space-x-2 px-3 py-2 rounded-xl border ${isAdmin ? 'bg-purple-500/20 border-purple-500/30' : getCreditBgColor()}`}>
+          <Coins className={`w-4 h-4 ${isAdmin ? 'text-purple-400' : getCreditColor()}`} />
+          <span className={`font-medium ${isAdmin ? 'text-purple-400' : getCreditColor()}`}>
+            {isAdmin ? '∞' : credits}
           </span>
         </div>
-        <button
-          onClick={onPurchaseClick}
-          className="flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl transition-colors mobile-optimized mobile-button"
-        >
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Buy</span>
-        </button>
+        {!isAdmin && (
+          <button
+            onClick={onPurchaseClick}
+            className="flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl transition-colors mobile-optimized mobile-button"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Buy</span>
+          </button>
+        )}
       </div>
     );
   }
@@ -99,42 +106,57 @@ export const CreditDisplay: React.FC<CreditDisplayProps> = ({
         </div>
         
         <div className="text-right">
-          <div className={`text-3xl font-bold ${getCreditColor()}`}>
-            {credits}
+          <div className={`text-3xl font-bold ${isAdmin ? 'text-purple-400' : getCreditColor()}`}>
+            {isAdmin ? '∞' : credits}
           </div>
-          <div className="text-sm text-gray-400">Available</div>
+          <div className="text-sm text-gray-400">{isAdmin ? 'Unlimited' : 'Available'}</div>
         </div>
       </div>
 
-      <div className="flex gap-3 mb-4">
-        <button
-          onClick={onPurchaseClick}
-          className="flex-1 flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all mobile-optimized mobile-button"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Buy Credits</span>
-        </button>
-        
-        <button
-          onClick={() => setShowHistory(!showHistory)}
-          className="flex items-center justify-center space-x-2 bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-xl transition-colors mobile-optimized mobile-button"
-        >
-          <History className="w-5 h-5" />
-        </button>
-      </div>
+      {!isAdmin && (
+        <div className="flex gap-3 mb-4">
+          <button
+            onClick={onPurchaseClick}
+            className="flex-1 flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all mobile-optimized mobile-button"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Buy Credits</span>
+          </button>
+
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="flex items-center justify-center space-x-2 bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-xl transition-colors mobile-optimized mobile-button"
+          >
+            <History className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="p-3 rounded-lg bg-purple-500/20 border border-purple-500/30 mb-4">
+          <div className="flex items-center space-x-2">
+            <Zap className="w-4 h-4 text-purple-400" />
+            <span className="text-sm font-medium text-purple-400">
+              Admin Account - Unlimited Credits
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Credit Status */}
-      <div className={`p-3 rounded-lg border ${getCreditBgColor()}`}>
-        <div className="flex items-center space-x-2">
-          <Zap className={`w-4 h-4 ${getCreditColor()}`} />
-          <span className={`text-sm font-medium ${getCreditColor()}`}>
-            {credits >= 20 && 'Plenty of credits available'}
-            {credits >= 5 && credits < 20 && 'Good credit balance'}
-            {credits > 0 && credits < 5 && 'Low credits - consider buying more'}
-            {credits === 0 && 'No credits - purchase required to generate logos'}
-          </span>
+      {!isAdmin && (
+        <div className={`p-3 rounded-lg border ${getCreditBgColor()}`}>
+          <div className="flex items-center space-x-2">
+            <Zap className={`w-4 h-4 ${getCreditColor()}`} />
+            <span className={`text-sm font-medium ${getCreditColor()}`}>
+              {credits >= 20 && 'Plenty of credits available'}
+              {credits >= 5 && credits < 20 && 'Good credit balance'}
+              {credits > 0 && credits < 5 && 'Low credits - consider buying more'}
+              {credits === 0 && 'No credits - purchase required to generate logos'}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Transaction History */}
       {showHistory && (
