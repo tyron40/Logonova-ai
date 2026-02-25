@@ -21,8 +21,11 @@ export class OpenAILogoService {
 
   async generateLogo(request: LogoGenerationRequest): Promise<string> {
     try {
+      console.log('🚀 Starting logo generation...', request);
+
       // Get the current session
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('🔐 Session check:', session ? 'Authenticated' : 'Not authenticated');
 
       if (!session) {
         throw new Error("You must be logged in to generate logos");
@@ -31,6 +34,7 @@ export class OpenAILogoService {
       // Call the Vercel API
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
       const apiUrl = `${apiBaseUrl}/api/generate-logo-with-credits`;
+      console.log('📡 Calling API:', apiUrl);
 
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -41,15 +45,19 @@ export class OpenAILogoService {
         body: JSON.stringify(request),
       });
 
+      console.log('📥 API Response Status:', response.status, response.statusText);
+
       if (!response.ok) {
         const error = await response.json().catch(() => ({ error: "Unknown error" }));
+        console.error('❌ API Error:', error);
         throw new Error(error.error ?? "Image generation failed.");
       }
 
       const data = await response.json();
+      console.log('✅ Logo generated successfully:', data.imageUrl ? 'URL received' : 'No URL');
       return data.imageUrl ?? "";
     } catch (err) {
-      console.error("Logo Generation Error:", err);
+      console.error("❌ Logo Generation Error:", err);
       throw new Error(err instanceof Error ? err.message : "Failed to generate logo. Try again.");
     }
   }

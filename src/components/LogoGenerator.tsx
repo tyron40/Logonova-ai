@@ -86,10 +86,14 @@ export default function LogoGenerator({
   };
 
   const handleGenerate = async () => {
+    console.log('🎨 Generate button clicked');
+
     if (!companyName.trim()) {
       setError('Please enter a company name');
       return;
     }
+
+    console.log('✓ Company name validated:', companyName);
 
     setError('');
     setIsGenerating(true);
@@ -104,12 +108,17 @@ export default function LogoGenerator({
         industry: 'Professional Services'
       };
 
+      console.log('📋 Logo request prepared:', logoRequest);
+
       const logoUrl = await openaiLogoService.generateLogo(logoRequest);
+
+      console.log('🖼️ Logo URL received:', logoUrl);
+
       setLogoUrl(logoUrl);
       setError('');
       updateCredits();
     } catch (error) {
-      console.error('Error generating logo:', error);
+      console.error('❌ Error generating logo:', error);
       let errorMessage = 'Failed to generate logo. Please try again.';
       if (error instanceof Error) {
         if (error.message.includes('fetch')) {
@@ -124,6 +133,7 @@ export default function LogoGenerator({
       updateCredits();
     } finally {
       setIsGenerating(false);
+      console.log('🏁 Generation process completed');
     }
   };
 

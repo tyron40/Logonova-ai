@@ -52,6 +52,7 @@ export default async function handler(
     // Check if user is admin
     const adminEmail = process.env.VITE_ADMIN_EMAIL || 'robertstyron40@gmail.com';
     const isAdmin = user.email === adminEmail;
+    console.log(`User: ${user.email}, Admin: ${isAdmin}`);
 
     const { data: apiKey, error: apiKeyError } = await supabase
       .from('user_api_keys')
@@ -75,10 +76,14 @@ export default async function handler(
 
     const openaiApiKey = process.env.OPENAI_API_KEY;
     if (!openaiApiKey) {
+      console.error('OPENAI_API_KEY is not configured');
       return res.status(500).json({ error: 'OpenAI API key not configured' });
     }
 
     const prompt = buildLogoPrompt(requestData);
+    console.log('Generated prompt for DALL-E:', prompt.substring(0, 200) + '...');
+
+    console.log('Calling OpenAI DALL-E 3 API...');
 
     const openaiResponse = await fetch(
       'https://api.openai.com/v1/images/generations',
@@ -99,10 +104,13 @@ export default async function handler(
       }
     );
 
+    console.log('OpenAI Response Status:', openaiResponse.status);
+
     if (!openaiResponse.ok) {
       const error = await openaiResponse.json().catch(() => ({
         error: { message: 'Unknown error' },
       }));
+      console.error('OpenAI API Error:', error);
       return res.status(openaiResponse.status).json({
         error: error.error?.message ?? 'Image generation failed',
       });
