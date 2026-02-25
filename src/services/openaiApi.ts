@@ -31,10 +31,10 @@ export class OpenAILogoService {
         throw new Error("You must be logged in to generate logos");
       }
 
-      // Call the Vercel API
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
-      const apiUrl = `${apiBaseUrl}/api/generate-logo-with-credits`;
-      console.log('📡 Calling API:', apiUrl);
+      // Call the Supabase Edge Function (has longer timeout than Vercel)
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const apiUrl = `${supabaseUrl}/functions/v1/generate-logo-with-credits`;
+      console.log('📡 Calling Supabase Edge Function:', apiUrl);
 
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -70,8 +70,8 @@ export class OpenAILogoService {
         throw new Error("You must be logged in to use AI enhancement");
       }
 
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
-      const apiUrl = `${apiBaseUrl}/api/enhance-description`;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const apiUrl = `${supabaseUrl}/functions/v1/enhance-description`;
 
       const response = await fetch(apiUrl, {
         method: "POST",
