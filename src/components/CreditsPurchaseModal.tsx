@@ -172,7 +172,7 @@ export const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
               <div>
                 <h4 className="font-medium text-white mb-2">Secure Payment with Stripe</h4>
                 <ul className="text-sm text-gray-400 space-y-1">
-                  <li>• Secure one-time payment processing</li>
+                  <li>• Credit/debit card, ACH bank transfer, or Link</li>
                   <li>• Credits added instantly after payment</li>
                   <li>• No recurring charges or subscriptions</li>
                   <li>• SSL encrypted and PCI compliant</li>
