@@ -8,6 +8,7 @@ export interface StripeProduct {
   currency: string;
   mode: 'payment' | 'subscription';
   popular?: boolean;
+  paymentLink?: string;
 }
 
 export const stripeProducts: StripeProduct[] = [
@@ -64,7 +65,8 @@ export const stripeProducts: StripeProduct[] = [
     credits: 500,
     currency: 'usd',
     mode: 'payment',
-    popular: false
+    popular: false,
+    paymentLink: 'https://buy.stripe.com/5kQ14o5TY9R1e0qcEk9ws00',
   }
 ];
 

@@ -18,7 +18,11 @@ export const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handlePurchase = async (priceId: string) => {
+  const handlePurchase = async (priceId: string, paymentLink?: string) => {
+    if (paymentLink) {
+      window.open(paymentLink, '_blank', 'noopener,noreferrer');
+      return;
+    }
     setLoadingPriceId(priceId);
     try {
       await stripeService.redirectToCheckout(priceId, 'payment');
@@ -133,7 +137,7 @@ export const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
                   </div>
 
                   <button
-                    onClick={() => handlePurchase(product.priceId)}
+                    onClick={() => handlePurchase(product.priceId, product.paymentLink)}
                     disabled={isLoading}
                     className={`w-full flex items-center justify-center space-x-2 bg-gradient-to-r ${gradient} text-white px-4 py-2.5 rounded-xl font-semibold hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm`}
                   >
@@ -186,7 +190,7 @@ export const CreditsPurchaseModal: React.FC<CreditsPurchaseModalProps> = ({
                       <div className="text-xs text-gray-400">one-time</div>
                     </div>
                     <button
-                      onClick={() => handlePurchase(customProduct.priceId)}
+                      onClick={() => handlePurchase(customProduct.priceId, customProduct.paymentLink)}
                       disabled={isLoading}
                       className="flex items-center space-x-2 bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 text-white px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap"
                     >
