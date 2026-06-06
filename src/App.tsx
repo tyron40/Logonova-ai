@@ -11,7 +11,73 @@ import { AccountSettings } from './components/AccountSettings';
 import { stripeService } from './services/stripeService';
 import { apiKeyManager } from './services/apiKeyManager';
 import { supabaseService, supabase } from './services/supabase';
-import type { User, Subscription } from './types';
+import { useAuth } from './hooks/useAuth'
+import { Header } from './components/Header'
+import { Auth } from './components/Auth'
+import { CreditPurchase } from './components/CreditPurchase'
+import { SuccessPage } from './components/SuccessPage'
+
+function Router() {
+  const path = window.location.pathname
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  switch (path) {
+    case '/auth':
+      return user ? <MainApp /> : <Auth />
+    case '/credits':
+      return (
+        <div>
+          <Header />
+          <CreditPurchase />
+        </div>
+      )
+    case '/success':
+      return <SuccessPage />
+    default:
+      return <MainApp />
+  }
+}
+
+function MainApp() {
+  const { user } = useAuth()
+
+  if (!user) {
+    return <Auth />
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Welcome to LogoNova
+          </h1>
+          <p className="text-xl text-gray-600 mb-8">
+            Generate amazing logos with AI
+          </p>
+          <button
+            onClick={() => window.location.href = '/credits'}
+            className="bg-blue-600 text-white px-6 py-3 rounded-md font-medium hover:bg-blue-700 transition-colors"
+          >
+            Buy Credits to Get Started
+          </button>
+        </div>
+      </main>
+    </div>
+  )
+}
 
 function App() {
   const [currentView, setCurrentView] = useState<'home' | 'generator' | 'plans' | 'success'>('home');
@@ -223,8 +289,8 @@ function App() {
 
 
   return (
-    <div className="min-h-screen bg-black">
-      <Header 
+    <div className="App">
+      <Router />
         currentView={currentView} 
         onViewChange={setCurrentView}
         currentUser={currentUser}
@@ -272,7 +338,7 @@ function App() {
         />
       )}
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
