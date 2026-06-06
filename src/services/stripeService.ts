@@ -51,62 +51,32 @@ export class StripeService {
     const successUrl = `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${baseUrl}/generator`;
 
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
-    const apiUrl = `${apiBaseUrl}/api/stripe-checkout`;
+    console.log('Creating checkout session via edge function:', { priceId, mode });
 
-    console.log('Creating checkout session:', { priceId, mode, apiUrl });
+    const { data, error } = await supabase.functions.invoke('stripe-checkout', {
+      body: {
+        price_id: priceId,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        mode,
+      },
+    });
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    try {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          price_id: priceId,
-          success_url: successUrl,
-          cancel_url: cancelUrl,
-          mode,
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      console.log('Checkout response status:', response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Checkout error response:', errorText);
-
-        try {
-          const error = JSON.parse(errorText);
-          throw new Error(error.error || 'Failed to create checkout session');
-        } catch (parseError) {
-          throw new Error(`Failed to create checkout session: ${response.status} ${response.statusText}`);
-        }
-      }
-
-      const result = await response.json();
-      console.log('Checkout session created:', result);
-      return result;
-    } catch (error) {
-      clearTimeout(timeoutId);
-      console.error('Fetch error:', error);
-
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          throw new Error('Request timed out. Please check your internet connection and try again.');
-        }
-        throw error;
-      }
-
-      throw new Error('An unexpected error occurred. Please try again.');
+    if (error) {
+      console.error('Edge function error:', error);
+      throw new Error(error.message || 'Failed to create checkout session');
     }
+
+    if (!data) {
+      throw new Error('No response from checkout service');
+    }
+
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    console.log('Checkout session created:', data);
+    return data;
   }
 
   async getUserSubscription(): Promise<StripeSubscription | null> {
