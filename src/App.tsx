@@ -11,73 +11,7 @@ import { AccountSettings } from './components/AccountSettings';
 import { stripeService } from './services/stripeService';
 import { apiKeyManager } from './services/apiKeyManager';
 import { supabaseService, supabase } from './services/supabase';
-import { useAuth } from './hooks/useAuth'
-import { Header } from './components/Header'
-import { Auth } from './components/Auth'
-import { CreditPurchase } from './components/CreditPurchase'
-import { SuccessPage } from './components/SuccessPage'
-
-function Router() {
-  const path = window.location.pathname
-  const { user, loading } = useAuth()
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  switch (path) {
-    case '/auth':
-      return user ? <MainApp /> : <Auth />
-    case '/credits':
-      return (
-        <div>
-          <Header />
-          <CreditPurchase />
-        </div>
-      )
-    case '/success':
-      return <SuccessPage />
-    default:
-      return <MainApp />
-  }
-}
-
-function MainApp() {
-  const { user } = useAuth()
-
-  if (!user) {
-    return <Auth />
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Welcome to LogoNova
-          </h1>
-          <p className="text-xl text-gray-600 mb-8">
-            Generate amazing logos with AI
-          </p>
-          <button
-            onClick={() => window.location.href = '/credits'}
-            className="bg-blue-600 text-white px-6 py-3 rounded-md font-medium hover:bg-blue-700 transition-colors"
-          >
-            Buy Credits to Get Started
-          </button>
-        </div>
-      </main>
-    </div>
-  )
-}
+import { User, Subscription } from './types/index';
 
 function App() {
   const [currentView, setCurrentView] = useState<'home' | 'generator' | 'plans' | 'success'>('home');
@@ -97,14 +31,12 @@ function App() {
     const sessionId = urlParams.get('session_id');
     if (sessionId) {
       setCurrentView('success');
-      // Credit processing now handled in SuccessPage component after verification
     }
   }, [currentUser]);
 
   // Initialize app and check authentication
   useEffect(() => {
     const initializeApp = async () => {
-      // Set a maximum timeout for initialization (5 seconds)
       const initTimeout = setTimeout(() => {
         console.warn('Initialization timeout - forcing app to load');
         setIsLoading(false);
@@ -113,14 +45,11 @@ function App() {
       try {
         let user = null;
 
-        // Check if Supabase is properly configured
         if (supabase) {
           try {
-            // Only check current user if Supabase is available
             user = await supabaseService.getCurrentUser();
             setCurrentUser(user);
 
-            // Store user email in localStorage for admin check persistence
             if (user?.email) {
               localStorage.setItem('logoai-current-user-email', user.email);
             }
@@ -129,7 +58,6 @@ function App() {
           }
         }
 
-        // Initialize API key manager
         try {
           await apiKeyManager.initializeForUser(user?.id || null);
           const hasOpenAIKey = apiKeyManager.hasApiKey('openai');
@@ -140,10 +68,8 @@ function App() {
         }
       } catch (error) {
         console.error('Error initializing app:', error);
-        // Don't block the app from loading, just log the error
         setHasApiKey(false);
       } finally {
-        // Clear the timeout and always set loading to false
         clearTimeout(initTimeout);
         setIsLoading(false);
       }
@@ -151,7 +77,6 @@ function App() {
 
     initializeApp();
 
-    // Listen for auth changes
     let subscription: any = null;
 
     if (supabase) {
@@ -161,14 +86,12 @@ function App() {
 
         setCurrentUser(user);
 
-        // Store user email in localStorage for admin check persistence
         if (user?.email) {
           localStorage.setItem('logoai-current-user-email', user.email);
         } else {
           localStorage.removeItem('logoai-current-user-email');
         }
 
-        // Reinitialize API key manager on meaningful auth state changes
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
           try {
             await apiKeyManager.initializeForUser(user?.id || null);
@@ -203,23 +126,14 @@ function App() {
     }
   };
 
-  const handleOpenApiKeyModal = () => {
-    setShowApiKeyModal(true);
-  };
-
   const handleAuthSuccess = async (user: User) => {
     setCurrentUser(user);
     setShowAuthModal(false);
-
-    // Database trigger automatically gives 100 credits to new users
-    // No need for manual credit management here
-
     setHasApiKey(apiKeyManager.hasApiKey('openai'));
   };
 
   const handleSignOut = async () => {
     try {
-      console.log('Signing out user...');
       const { error } = await supabaseService.signOut();
 
       if (error) {
@@ -232,7 +146,6 @@ function App() {
       apiKeyManager.initializeForUser(null);
       setHasApiKey(false);
       localStorage.removeItem('logoai-current-user-email');
-      console.log('User signed out successfully');
     } catch (error) {
       console.error('Error signing out:', error);
       alert('An error occurred while signing out. Please try again.');
@@ -246,6 +159,7 @@ function App() {
     }
     setShowCreditModal(true);
   };
+
   const renderCurrentView = () => {
     switch (currentView) {
       case 'home':
@@ -287,11 +201,10 @@ function App() {
     );
   }
 
-
   return (
     <div className="App">
-      <Router />
-        currentView={currentView} 
+      <Header
+        currentView={currentView}
         onViewChange={setCurrentView}
         currentUser={currentUser}
         onSignOut={handleSignOut}
@@ -300,8 +213,7 @@ function App() {
         onShowAccountSettings={() => setShowAccountSettings(true)}
       />
       {renderCurrentView()}
-      
-      {/* API Key Modal */}
+
       {showApiKeyModal && (
         <ApiKeyModal
           isOpen={showApiKeyModal}
@@ -310,7 +222,6 @@ function App() {
         />
       )}
 
-      {/* Auth Modal */}
       {showAuthModal && (
         <AuthModal
           isOpen={showAuthModal}
@@ -319,7 +230,6 @@ function App() {
         />
       )}
 
-      {/* Credits Purchase Modal */}
       {showCreditModal && (
         <CreditsPurchaseModal
           isOpen={showCreditModal}
@@ -328,7 +238,6 @@ function App() {
         />
       )}
 
-      {/* Account Settings Modal */}
       {showAccountSettings && (
         <AccountSettings
           isOpen={showAccountSettings}
@@ -338,7 +247,7 @@ function App() {
         />
       )}
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
