@@ -149,31 +149,22 @@ export class StripeService {
     }
 
     const { data: { session } } = await supabase.auth.getSession();
-    
+
     if (!session?.access_token) {
       throw new Error('User not authenticated');
     }
 
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
-      const response = await fetch(`${apiBaseUrl}/api/verify-payment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          session_id: sessionId,
-        }),
+      const { data, error } = await supabase.functions.invoke('verify-payment', {
+        body: { session_id: sessionId },
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to verify payment');
+      if (error) {
+        console.error('Verify payment error:', error);
+        return { success: false };
       }
 
-      const result = await response.json();
-      return result;
+      return data || { success: false };
     } catch (error) {
       console.error('Error verifying payment session:', error);
       return { success: false };
